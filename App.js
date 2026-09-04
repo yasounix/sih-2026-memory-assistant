@@ -1,43 +1,13 @@
 import * as React from 'react';
-import { Text, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 
-// 4 Screens (Empty rooms for your team)
-function HomeScreen() {
-  return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <Text style={{ fontSize: 24, color: 'blue' }}>Home Screen</Text>
-    </View>
-  );
-}
+import HomeScreen from './src/screens/HomeScreen';
+import GamesScreen from './src/screens/GamesScreen';
+import MemoriesScreen from './src/screens/MemoriesScreen';
+import AIScreen from './src/screens/AIScreen';
 
-function GamesScreen() {
-  return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <Text style={{ fontSize: 24, color: 'blue' }}>Games Screen</Text>
-    </View>
-  );
-}
-
-function MemoriesScreen() {
-  return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <Text style={{ fontSize: 24, color: 'blue' }}>Memories Screen</Text>
-    </View>
-  );
-}
-
-function AIScreen() {
-  return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <Text style={{ fontSize: 24, color: 'blue' }}>AI Assistant Screen</Text>
-    </View>
-  );
-}
-
-// Bottom Tab Navigation
 const Tab = createBottomTabNavigator();
 
 export default function App() {
