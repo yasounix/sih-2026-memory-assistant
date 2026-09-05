@@ -1,29 +1,3 @@
-<<<<<<< HEAD
-import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, Image, ActivityIndicator } from 'react-native';
-import { getFamilyMembers } from '../modules/memoryData'; // Import dynamic function
-
-export default function MemoriesScreen({ route }) {
-  const [members, setMembers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  
-  // You need to pass the actual patientId here or use a default for now
-  const patientId = route.params?.patientId || 'P001'; 
-
-  useEffect(() => {
-    const loadData = async () => {
-      const data = await getFamilyMembers(patientId);
-      setMembers(data);
-      setLoading(false);
-    };
-    loadData();
-  }, [patientId]);
-
-  if (loading) return <ActivityIndicator size="large" />;
-
-  return (
-    <View>
-=======
 import React from 'react';
 import { Text, View, FlatList, Image, StyleSheet } from 'react-native';
 import { familyMembers } from '../modules/memoryData';
@@ -38,16 +12,10 @@ export default function MemoriesScreen() {
         My Family 👨‍👩‍👧‍👦
       </Text>
       
->>>>>>> c5603c822cd9152f6932b6e5b40571db78e107d4
       <FlatList
-        data={members}
-        keyExtractor={(item) => item.id.toString()}
+        data={familyMembers}
+        keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-<<<<<<< HEAD
-          <View style={{ padding: 15, borderBottomWidth: 1, borderColor: '#ddd' }}>
-            <Text style={{ fontWeight: 'bold' }}>{item.name} ({item.relationship})</Text>
-            <Text>{item.description}</Text>
-=======
           <View style={[styles.card, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder }]}>
             <Image source={{ uri: item.photo_url }} style={styles.image} />
             <View style={styles.info}>
@@ -55,15 +23,11 @@ export default function MemoriesScreen() {
               <Text style={[styles.relation, { color: theme.subText }]}>{item.relationship}</Text>
               <Text style={[styles.description, { color: theme.text }]}>{item.description}</Text>
             </View>
->>>>>>> c5603c822cd9152f6932b6e5b40571db78e107d4
           </View>
         )}
       />
     </View>
   );
-<<<<<<< HEAD
-}
-=======
 }
 
 const styles = StyleSheet.create({
@@ -103,4 +67,3 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
 });
->>>>>>> c5603c822cd9152f6932b6e5b40571db78e107d4

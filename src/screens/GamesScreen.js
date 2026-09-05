@@ -4,12 +4,8 @@ import SequenceGame from '../games/SequenceGame';
 import MemoryMatchGame from '../games/MemoryMatchGame';
 import SupermarketGame from '../games/SupermarketGame';
 import SortingGame from '../games/SortingGame';
-<<<<<<< HEAD
-import MemoryPathGame from '../games/MemoryPathGame';
-=======
 import { useTheme } from '../context/ThemeContext';
 import { useNavigation } from '@react-navigation/native';
->>>>>>> c5603c822cd9152f6932b6e5b40571db78e107d4
 
 export default function GamesScreen() {
   const [selectedGame, setSelectedGame] = useState(null);
@@ -40,24 +36,17 @@ export default function GamesScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.menuButton, { backgroundColor: '#F59E0B' }]}
+            style={[styles.menuButton, { backgroundColor: '#8B5CF6' }]}
             onPress={() => setSelectedGame('supermarket')}
           >
             <Text style={styles.menuButtonText}>🛒 Supermarket</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.menuButton, { backgroundColor: '#8B5CF6' }]}
+            style={[styles.menuButton, { backgroundColor: '#F59E0B' }]}
             onPress={() => setSelectedGame('sorting')}
           >
             <Text style={styles.menuButtonText}>🧺 Sorting Game</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.menuButton, { backgroundColor: '#EC4899' }]}
-            onPress={() => setSelectedGame('memorypath')}
-          >
-            <Text style={styles.menuButtonText}>🧩 Memory Path</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -80,7 +69,6 @@ export default function GamesScreen() {
           {selectedGame === 'memory' && <MemoryMatchGame />}
           {selectedGame === 'supermarket' && <SupermarketGame />}
           {selectedGame === 'sorting' && <SortingGame />}
-          {selectedGame === 'memorypath' && <MemoryPathGame />}
         </View>
         <TouchableOpacity
           style={{ padding: 15, backgroundColor: '#EF4444', margin: 20, borderRadius: 10 }}
