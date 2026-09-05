@@ -8,6 +8,7 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
+import { useTheme } from '../context/ThemeContext';
 
 // ─── Game Configuration ───
 
@@ -104,6 +105,7 @@ export default function MemoryPathGame({
   onFinish,
   onGameOver,
 }) {
+  const { theme, isDarkMode } = useTheme();
   const [difficulty, setDifficulty] = useState(initialDifficulty);
   const [gameState, setGameState] = useState('idle'); // idle | showing | playing | gameover | story
   const [score, setScore] = useState(0);
@@ -251,39 +253,40 @@ export default function MemoryPathGame({
 
   // ─── Render ───
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>🧩 Memory Path</Text>
+          <Text style={[styles.title, { color: theme.text }]}>🧩 Memory Path</Text>
         </View>
 
         {/* Stats */}
         <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>ROUND</Text>
-            <Text style={styles.statValue}>{gameState === 'idle' ? '-' : round}</Text>
+          <View style={[styles.statCard, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder, borderWidth: 1 }]}>
+            <Text style={[styles.statLabel, { color: theme.subText }]}>ROUND</Text>
+            <Text style={[styles.statValue, { color: theme.text }]}>{gameState === 'idle' ? '-' : round}</Text>
           </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>SCORE</Text>
-            <Text style={styles.statValue}>{score}</Text>
+          <View style={[styles.statCard, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder, borderWidth: 1 }]}>
+            <Text style={[styles.statLabel, { color: theme.subText }]}>SCORE</Text>
+            <Text style={[styles.statValue, { color: theme.text }]}>{score}</Text>
           </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>TIME</Text>
-            <Text style={styles.statValue}>{duration}s</Text>
+          <View style={[styles.statCard, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder, borderWidth: 1 }]}>
+            <Text style={[styles.statLabel, { color: theme.subText }]}>TIME</Text>
+            <Text style={[styles.statValue, { color: theme.text }]}>{duration}s</Text>
           </View>
         </View>
 
         {/* Difficulty Selector (idle only) */}
         {gameState === 'idle' && (
           <View style={styles.difficultyContainer}>
-            <Text style={styles.difficultyHeading}>Select Difficulty:</Text>
+            <Text style={[styles.difficultyHeading, { color: theme.subText }]}>Select Difficulty:</Text>
             <View style={styles.difficultyButtons}>
               {['Easy', 'Medium', 'Hard'].map((diff) => (
                 <TouchableOpacity
                   key={diff}
                   style={[
                     styles.difficultyButton,
+                    { backgroundColor: isDarkMode ? theme.cardBorder : '#E2E8F0' },
                     difficulty === diff && styles.difficultyButtonActive,
                   ]}
                   onPress={() => setDifficulty(diff)}
@@ -306,18 +309,23 @@ export default function MemoryPathGame({
         <View
           style={[
             styles.statusBanner,
+            { backgroundColor: isDarkMode ? '#1E293B' : '#E0E7FF' },
             gameState === 'gameover' && styles.statusBannerGameOver,
             gameState === 'playing' && styles.statusBannerPlaying,
           ]}
         >
-          <Text style={styles.statusText}>{statusMessage}</Text>
+          <Text style={[styles.statusText, { color: isDarkMode ? '#F8FAFC' : '#1E293B' }]}>
+            {statusMessage}
+          </Text>
         </View>
 
         {/* Story Display */}
         {gameState === 'story' && currentStory && (
-          <View style={styles.storyContainer}>
-            <Text style={styles.storyText}>📖 {currentStory.text}</Text>
-            <Text style={styles.questionText}>❓ {currentStory.question}</Text>
+          <View style={[styles.storyContainer, { backgroundColor: isDarkMode ? '#292524' : '#FEF3C7' }]}>
+            <Text style={[styles.storyText, { color: theme.text }]}>📖 {currentStory.text}</Text>
+            <Text style={[styles.questionText, { color: isDarkMode ? '#FCD34D' : '#92400E' }]}>
+              ❓ {currentStory.question}
+            </Text>
           </View>
         )}
 
@@ -330,6 +338,11 @@ export default function MemoryPathGame({
                   key={objKey}
                   style={[
                     styles.objectButton,
+                    {
+                      backgroundColor: theme.cardBackground,
+                      borderColor: theme.cardBorder,
+                      borderWidth: 1,
+                    },
                     selectedObjectId === objKey &&
                       (feedback?.type === 'correct'
                         ? styles.objectButtonCorrect
@@ -342,7 +355,7 @@ export default function MemoryPathGame({
                   disabled={gameState !== 'playing'}
                 >
                   <Text style={styles.objectEmoji}>{OBJECTS[objKey].emoji}</Text>
-                  <Text style={styles.objectLabel}>{OBJECTS[objKey].label}</Text>
+                  <Text style={[styles.objectLabel, { color: theme.text }]}>{OBJECTS[objKey].label}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -370,23 +383,23 @@ export default function MemoryPathGame({
 
         {/* Game Over Summary */}
         {gameState === 'gameover' && (
-          <View style={styles.gameOverContainer}>
-            <Text style={styles.gameOverTitle}>🏁 Game Over</Text>
-            <View style={styles.resultRow}>
-              <Text style={styles.resultLabel}>Final Score:</Text>
-              <Text style={styles.resultValue}>{score} objects</Text>
+          <View style={[styles.gameOverContainer, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder, borderWidth: 1 }]}>
+            <Text style={[styles.gameOverTitle, { color: theme.text }]}>🏁 Game Over</Text>
+            <View style={[styles.resultRow, { borderBottomColor: theme.cardBorder }]}>
+              <Text style={[styles.resultLabel, { color: theme.subText }]}>Final Score:</Text>
+              <Text style={[styles.resultValue, { color: theme.text }]}>{score} objects</Text>
             </View>
-            <View style={styles.resultRow}>
-              <Text style={styles.resultLabel}>Rounds:</Text>
-              <Text style={styles.resultValue}>{round - 1}</Text>
+            <View style={[styles.resultRow, { borderBottomColor: theme.cardBorder }]}>
+              <Text style={[styles.resultLabel, { color: theme.subText }]}>Rounds:</Text>
+              <Text style={[styles.resultValue, { color: theme.text }]}>{round - 1}</Text>
             </View>
-            <View style={styles.resultRow}>
-              <Text style={styles.resultLabel}>Time:</Text>
-              <Text style={styles.resultValue}>{duration}s</Text>
+            <View style={[styles.resultRow, { borderBottomColor: theme.cardBorder }]}>
+              <Text style={[styles.resultLabel, { color: theme.subText }]}>Time:</Text>
+              <Text style={[styles.resultValue, { color: theme.text }]}>{duration}s</Text>
             </View>
-            <View style={styles.resultRow}>
-              <Text style={styles.resultLabel}>Difficulty:</Text>
-              <Text style={styles.resultValue}>{difficulty}</Text>
+            <View style={[styles.resultRow, { borderBottomColor: theme.cardBorder }]}>
+              <Text style={[styles.resultLabel, { color: theme.subText }]}>Difficulty:</Text>
+              <Text style={[styles.resultValue, { color: theme.text }]}>{difficulty}</Text>
             </View>
           </View>
         )}

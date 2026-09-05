@@ -1,0 +1,67 @@
+{
+  "home": {
+    "greeting": "Good Morning, %{name}! 🌅",
+    "todayIs": "Today is %{date}",
+    "myDay": "My Day 📋",
+    "playGames": "Play Games",
+    "viewMemories": "View Memories",
+    "noReminders": "No reminders found. Ask your caregiver to add some.",
+    "selectPatientFirst": "⚠️ Please select a patient first",
+    "connected": "✅ Connected (%{name})",
+    "demoData": "📋 Using demo data (%{name})",
+    "offlineData": "❌ Using offline data"
+  },
+  "games": {
+    "title": "🧠 Cognitive Games",
+    "sequenceRecall": "🔴 Sequence Recall",
+    "memoryMatch": "🃏 Memory Match",
+    "supermarket": "🛒 Supermarket",
+    "sorting": "🧺 Sorting Game",
+    "memoryPath": "🧩 Memory Path",
+    "backToMenu": "⬅️ Back to Games Menu"
+  },
+  "ai": {
+    "title": "AI Companion 🤖",
+    "subtitle": "Ask me anything about your family, daily reminders, or medicines.",
+    "commonQuestions": "Common Questions:",
+    "placeholder": "Type a question here...",
+    "askButton": "Ask Companion",
+    "thinking": "Thinking...",
+    "assistantLabel": "💬 Assistant",
+    "questionRahul": "Who is Rahul?",
+    "questionPriya": "Who is Priya?",
+    "questionSchedule": "What is today's schedule?",
+    "questionMedicine": "When do I take medicine?"
+  },
+  "memories": {
+    "title": "Family Members",
+    "loading": "Loading memories...",
+    "empty": "No family members added yet."
+  },
+  "patient": {
+    "selectTitle": "👨‍⚕️ Select Patient",
+    "subtitle": "Choose a patient profile to personalize reminders and memories.",
+    "loading": "Loading patients...",
+    "empty": "No patients found.",
+    "age": "Age",
+    "gender": "Gender",
+    "id": "ID"
+  },
+  "nav": {
+    "selectPatient": "Select Patient",
+    "home": "Home",
+    "games": "Games",
+    "memories": "Memories",
+    "ai": "AI"
+  },
+  "common": {
+    "back": "⬅️ Back",
+    "startGame": "🎮 Start Game",
+    "playAgain": "🔄 Play Again",
+    "restartGame": "🔄 Restart",
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "selectLanguage": "Language / ভাষা / भाषा"
+  }
+}
+

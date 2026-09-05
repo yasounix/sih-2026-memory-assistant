@@ -21,7 +21,7 @@ export default function ThemeToggle() {
     >
       <Ionicons
         name={isDarkMode ? 'moon' : 'sunny'}
-        size={20}
+        size={22}
         color={isDarkMode ? '#fbbf24' : '#f59e0b'}
       />
     </TouchableOpacity>
@@ -37,4 +37,3 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 });
-
