@@ -1,65 +1,37 @@
-import React from 'react';
-import { Text, View, FlatList, Image, StyleSheet } from 'react-native';
-import { familyMembers } from '../modules/memoryData';
+import React, { useEffect, useState } from 'react';
+import { View, Text, FlatList, Image, ActivityIndicator } from 'react-native';
+import { getFamilyMembers } from '../modules/memoryData'; // Import dynamic function
 
-export default function MemoriesScreen() {
+export default function MemoriesScreen({ route }) {
+  const [members, setMembers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  
+  // You need to pass the actual patientId here or use a default for now
+  const patientId = route.params?.patientId || 'P001'; 
+
+  useEffect(() => {
+    const loadData = async () => {
+      const data = await getFamilyMembers(patientId);
+      setMembers(data);
+      setLoading(false);
+    };
+    loadData();
+  }, [patientId]);
+
+  if (loading) return <ActivityIndicator size="large" />;
+
   return (
-    <View style={{ flex: 1, padding: 20, backgroundColor: '#f5f5f5' }}>
-      <Text style={{ fontSize: 28, fontWeight: 'bold', marginBottom: 20 }}>
-        My Family 👨‍👩‍👧‍👦
-      </Text>
-      
+    <View>
       <FlatList
-        data={familyMembers}
-        keyExtractor={(item) => item.id}
+        data={members}
+        keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
-          <View style={styles.card}>
-            <Image source={{ uri: item.photo_url }} style={styles.image} />
-            <View style={styles.info}>
-              <Text style={styles.name}>{item.name}</Text>
-              <Text style={styles.relation}>{item.relationship}</Text>
-              <Text style={styles.description}>{item.description}</Text>
-            </View>
+          <View style={{ padding: 15, borderBottomWidth: 1, borderColor: '#ddd' }}>
+            <Text style={{ fontWeight: 'bold' }}>{item.name} ({item.relationship})</Text>
+            <Text>{item.description}</Text>
           </View>
         )}
       />
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    flexDirection: 'row',
-    backgroundColor: 'white',
-    borderRadius: 15,
-    padding: 15,
-    marginBottom: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  image: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    marginRight: 15,
-  },
-  info: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  name: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  relation: {
-    fontSize: 16,
-    color: 'gray',
-  },
-  description: {
-    fontSize: 14,
-    marginTop: 5,
-  },
-});
