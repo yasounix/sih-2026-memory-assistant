@@ -1,67 +1,70 @@
 {
   "home": {
-    "greeting": "সুপ্ৰভাত, %{name}! 🌅",
-    "todayIs": "আজি হ'ল %{date}",
-    "myDay": "মোৰ দিনলিপি 📋",
-    "playGames": "খেল খেলক",
-    "viewMemories": "স্মৃতি চাওক",
-    "noReminders": "কোনো তালিকাভুক্ত কাম নাই।",
-    "selectPatientFirst": "⚠️ অনুগ্ৰহ কৰি প্ৰথমে এজন ৰোগী বাছক",
-    "connected": "✅ সংযুক্ত হ'ল (%{name})",
-    "demoData": "📋 ডেমো তথ্য ব্যৱহাৰ কৰা হৈছে (%{name})",
-    "offlineData": "❌ অফলাইন তথ্য ব্যৱহাৰ কৰা হৈছে"
+    "greetingMorning": "সুপ্ৰভাত",
+    "greetingAfternoon": "শুভ দুপৰীয়া",
+    "greetingEvening": "শুভ গধূলি",
+    "greetingNight": "শুভ ৰাত্ৰি",
+    "greeting": "স্বাগতম, %{name}",
+    "todayIs": "%{date}",
+    "myDay": "দৈনন্দিন সূচী",
+    "playGames": "মগজুৰ ব্যায়াম",
+    "viewMemories": "পৰিয়াল আৰু স্মৃতি",
+    "noReminders": "আজিৰ বাবে কোনো কাম তালিকাভুক্ত নাই।",
+    "selectPatientFirst": "অনুগ্ৰহ কৰি প্ৰথমে এজন ৰোগীৰ প্ৰফাইল বাছক",
+    "connected": "সংযুক্ত (%{name})",
+    "demoData": "ডেমো ম'ড (%{name})",
+    "offlineData": "অফলাইন ম'ড"
   },
   "games": {
-    "title": "🧠 স্মৃতিবৰ্ধক খেলসমূহ",
-    "sequenceRecall": "🔴 ক্ৰম মনত ৰখা খেল",
-    "memoryMatch": "🃏 কাৰ্ড মিলোৱা খেল",
-    "supermarket": "🛒 চুপাৰমাৰ্কেটৰ সামগ্ৰী",
-    "sorting": "🧺 ভাগ কৰা খেল",
-    "memoryPath": "🧩 স্মৃতি যাত্ৰা",
-    "backToMenu": "⬅️ খেলৰ সূচীলৈ উভতি যাওক"
+    "title": "জ্ঞানমূলক ব্যায়াম",
+    "sequenceRecall": "ক্ৰম মনত ৰখা",
+    "memoryMatch": "কাৰ্ড মিলোৱা",
+    "supermarket": "চুপাৰমাৰ্কেট",
+    "sorting": "সামগ্ৰী শ্ৰেণীবিভাজন",
+    "memoryPath": "স্মৃতি যাত্ৰা",
+    "backToMenu": "ব্যায়ামলৈ উভতি যাওক"
   },
   "ai": {
-    "title": "এআই সংগী 🤖",
-    "subtitle": "আপোনাৰ পৰিয়াল, দৈনন্দিন কাম বা ঔষধৰ বিষয়ে যিকোনো কথা সোধক।",
-    "commonQuestions": "সাধাৰণ প্ৰশ্নসমূহ:",
-    "placeholder": "ইয়াত প্ৰশ্ন লিখক...",
-    "askButton": "সংগীক সোধক",
-    "thinking": "চিন্তা কৰি থকা হৈছে...",
-    "assistantLabel": "💬 সহায়ক",
+    "title": "যত্ন সহায়ক",
+    "subtitle": "আপোনাৰ দৈনন্দিন কাম, পৰিয়ালৰ সদস্য বা ঔষধৰ সময়ৰ বিষয়ে প্ৰশ্ন সোধক।",
+    "commonQuestions": "প্ৰস্তাৱিত প্ৰশ্নসমূহ:",
+    "placeholder": "আপোনাৰ প্ৰশ্ন লিখক...",
+    "askButton": "প্ৰেৰণ কৰক",
+    "thinking": "পৰীক্ষা কৰি থকা হৈছে...",
+    "assistantLabel": "সহায়ক",
     "questionRahul": "ৰাহুল কোন?",
     "questionPriya": "প্ৰিয়া কোন?",
-    "questionSchedule": "আজিৰ সূচী কি?",
+    "questionSchedule": "আজি মোৰ সূচী কি?",
     "questionMedicine": "মই ঔষধ কেতিয়া খাব লাগে?"
   },
   "memories": {
-    "title": "মোৰ পৰিয়াল 👨‍👩‍👧‍👦",
-    "loading": "পৰিয়ালৰ স্মৃতি ল'ড হৈ আছে...",
-    "empty": "কোনো পৰিয়ালৰ সদস্য পোৱা নগল।"
+    "title": "পৰিয়াল আৰু আপোনজন",
+    "loading": "স্মৃতি লোড হৈ আছে...",
+    "empty": "এতিয়ালৈকে কোনো পৰিয়ালৰ সদস্য যোগ কৰা হোৱা নাই।"
   },
   "patient": {
-    "selectTitle": "👨‍⚕️ ৰোগী বাছক",
+    "selectTitle": "ৰোগী বাছক",
     "subtitle": "পাসোৰা নহ'বলৈ আৰু স্মৃতি মনত ৰাখিবলৈ ৰোগীৰ প্ৰফাইল বাছক।",
-    "loading": "ৰোগীৰ তথ্য ল'ড হৈ আছে...",
-    "empty": "কোনো ৰোগী পোৱা নগল।",
+    "loading": "ৰোগীৰ তথ্য লোড হৈ আছে...",
+    "empty": "কোনো ৰোগী পোৱা নগ'ল।",
     "age": "বয়স",
     "gender": "লিংগ",
-    "id": "প্ৰফাইল আইডি"
+    "id": "আইডি"
   },
   "nav": {
-    "selectPatient": "ৰোগী বাছক",
+    "selectPatient": "প্ৰফাইল",
     "home": "গৃহ",
     "games": "খেল",
-    "memories": "স্মৃতি",
-    "ai": "এআই"
+    "memories": "পৰিয়াল",
+    "ai": "সহায়ক"
   },
   "common": {
-    "back": "⬅️ উভতি যাওক",
-    "startGame": "🎮 খেল আৰম্ভ কৰক",
-    "playAgain": "🔄 পুনৰ খেলক",
-    "restartGame": "🔄 নতুনকৈ আৰম্ভ কৰক",
-    "loading": "অপেক্ষা কৰক...",
+    "back": "উভতি যাওক",
+    "startGame": "আৰম্ভ কৰক",
+    "playAgain": "পুনৰ চেষ্টা কৰক",
+    "restartGame": "নতুনকৈ আৰম্ভ কৰক",
+    "loading": "লোড হৈ আছে...",
     "error": "এটা ত্ৰুটি ঘটিল",
-    "selectLanguage": "ভাষা সলনি কৰক"
+    "selectLanguage": "ভাষা"
   }
 }
-

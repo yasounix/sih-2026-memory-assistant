@@ -1,15 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { Text, View, FlatList, Image, StyleSheet, SafeAreaView, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { usePatient } from '../context/PatientContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { getFamilyMembers } from '../modules/database';
-import { familyMembers as fallbackFamilyMembers } from '../modules/memoryData';
 import AddFamilyMemberModal from '../components/AddFamilyMemberModal';
 
 export default function MemoriesScreen() {
   const { patientId } = usePatient();
-  const { theme } = useTheme();
+  const { theme, isDarkMode } = useTheme();
   const { t } = useLanguage();
   const [family, setFamily] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -19,13 +19,16 @@ export default function MemoriesScreen() {
     try {
       setLoading(true);
       console.log(`MemoriesScreen: patientId = ${patientId}`);
+      if (!patientId) {
+        setFamily([]);
+        return;
+      }
       const data = await getFamilyMembers(patientId);
       console.log(`MemoriesScreen: family =`, data);
-      // Only use fallback data if connection fails, NOT when empty
       setFamily(data || []);
     } catch (error) {
       console.error('MemoriesScreen: Error fetching family:', error);
-      setFamily(fallbackFamilyMembers || []);
+      setFamily([]);
     } finally {
       setLoading(false);
     }
@@ -38,7 +41,7 @@ export default function MemoriesScreen() {
   if (loading) {
     return (
       <SafeAreaView style={[styles.centerContainer, { backgroundColor: theme.background }]}>
-        <ActivityIndicator size="large" color="#2196F3" />
+        <ActivityIndicator size="large" color={theme.primary} />
         <Text style={[styles.loadingText, { color: theme.subText }]}>
           {t('memories.loading')}
         </Text>
@@ -52,20 +55,29 @@ export default function MemoriesScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={styles.content}>
         <View style={styles.headerRow}>
-          <Text style={[styles.title, { color: theme.text }]}>
-            {t('memories.title')}
-          </Text>
+          <View>
+            <Text style={[styles.title, { color: theme.text }]}>
+              {t('memories.title')}
+            </Text>
+            <Text style={[styles.subtitle, { color: theme.subText }]}>
+              {familyList.length} {familyList.length === 1 ? 'member' : 'members'} saved
+            </Text>
+          </View>
           <TouchableOpacity
             style={styles.addButton}
             onPress={() => setModalVisible(true)}
+            activeOpacity={0.8}
           >
-            <Text style={styles.addButtonText}>+</Text>
+            <Ionicons name="add" size={22} color="#FFFFFF" />
+            <Text style={styles.addButtonText}>Add</Text>
           </TouchableOpacity>
         </View>
 
         <FlatList
           data={familyList}
           keyExtractor={(item) => item.id?.toString() || Math.random().toString()}
+          contentContainerStyle={{ paddingBottom: 30 }}
+          showsVerticalScrollIndicator={false}
           renderItem={({ item }) => (
             <View
               style={[
@@ -76,23 +88,46 @@ export default function MemoriesScreen() {
                 },
               ]}
             >
-              <Image
-                source={{ uri: item.photo_url || 'https://via.placeholder.com/150/4CAF50/FFFFFF?text=Family' }}
-                style={styles.image}
-              />
+              {item.photo_url && !item.photo_url.includes('placeholder') ? (
+                <Image source={{ uri: item.photo_url }} style={styles.image} />
+              ) : (
+                <View style={[styles.avatarFallback, { backgroundColor: isDarkMode ? '#1E3A8A' : '#EFF6FF' }]}>
+                  <Ionicons name="person" size={34} color={theme.primary} />
+                </View>
+              )}
               <View style={styles.info}>
-                <Text style={[styles.name, { color: theme.text }]}>{item.name}</Text>
-                <Text style={[styles.relation, { color: theme.subText }]}>{item.relationship}</Text>
+                <View style={styles.cardTopRow}>
+                  <Text style={[styles.name, { color: theme.text }]} numberOfLines={1}>{item.name}</Text>
+                  {item.relationship ? (
+                    <View style={styles.relationPill}>
+                      <Text style={[styles.relationText, { color: theme.primary }]}>{item.relationship}</Text>
+                    </View>
+                  ) : null}
+                </View>
+
+                {item.phone ? (
+                  <View style={styles.phonePill}>
+                    <Ionicons name="call" size={13} color={isDarkMode ? '#34D399' : '#059669'} style={{ marginRight: 5 }} />
+                    <Text style={[styles.phoneText, { color: isDarkMode ? '#34D399' : '#059669' }]}>{item.phone}</Text>
+                  </View>
+                ) : null}
+
                 {item.description ? (
-                  <Text style={[styles.description, { color: theme.text }]}>{item.description}</Text>
+                  <Text style={[styles.description, { color: theme.subText }]} numberOfLines={2}>
+                    {item.description}
+                  </Text>
                 ) : null}
               </View>
             </View>
           )}
           ListEmptyComponent={
-            <Text style={[styles.emptyText, { color: theme.subText }]}>
-              {t('memories.empty')}
-            </Text>
+            <View style={styles.emptyContainer}>
+              <Ionicons name="people-outline" size={48} color={theme.subText} style={{ marginBottom: 12 }} />
+              <Text style={[styles.emptyTitle, { color: theme.text }]}>No family members yet</Text>
+              <Text style={[styles.emptyText, { color: theme.subText }]}>
+                Tap the "+ Add" button above to add family and loved ones for easy recognition.
+              </Text>
+            </View>
           }
         />
 
@@ -129,69 +164,129 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 20,
+    marginTop: 4,
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
+    letterSpacing: 0.3,
+  },
+  subtitle: {
+    fontSize: 14,
+    marginTop: 2,
+    fontWeight: '500',
   },
   addButton: {
-    backgroundColor: '#4CAF50',
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: 'center',
+    backgroundColor: '#059669',
+    flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
-    shadowRadius: 3,
+    shadowRadius: 4,
     elevation: 3,
+    gap: 4,
   },
   addButtonText: {
     color: '#FFF',
-    fontSize: 28,
+    fontSize: 16,
     fontWeight: 'bold',
-    lineHeight: 30,
   },
   card: {
     flexDirection: 'row',
-    borderRadius: 15,
-    padding: 15,
-    marginBottom: 15,
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 14,
     borderWidth: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowRadius: 5,
+    elevation: 3,
+    alignItems: 'center',
   },
   image: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    marginRight: 15,
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    marginRight: 16,
     backgroundColor: '#E2E8F0',
+  },
+  avatarFallback: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    marginRight: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   info: {
     flex: 1,
     justifyContent: 'center',
   },
+  cardTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
   name: {
     fontSize: 20,
     fontWeight: 'bold',
+    flex: 1,
+    marginRight: 8,
   },
-  relation: {
-    fontSize: 16,
-    marginTop: 2,
+  relationPill: {
+    backgroundColor: 'rgba(37, 99, 235, 0.1)',
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  relationText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  phonePill: {
+    backgroundColor: 'rgba(5, 150, 105, 0.1)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+    marginTop: 4,
+    marginBottom: 4,
+    alignSelf: 'flex-start',
+  },
+  phoneText: {
+     
+    fontSize: 14,
+    fontWeight: '700',
   },
   description: {
     fontSize: 14,
-    marginTop: 5,
-    lineHeight: 18,
+    marginTop: 4,
+    lineHeight: 19,
+  },
+  emptyContainer: {
+    paddingVertical: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  emptyIcon: {
+    fontSize: 48,
+    marginBottom: 12,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 6,
+    textAlign: 'center',
   },
   emptyText: {
     textAlign: 'center',
-    fontSize: 16,
-    marginTop: 30,
+    fontSize: 15,
+    lineHeight: 22,
   },
 });

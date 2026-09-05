@@ -1,45 +1,49 @@
 {
   "home": {
-    "greeting": "Good Morning, %{name}! 🌅",
-    "todayIs": "Today is %{date}",
-    "myDay": "My Day 📋",
-    "playGames": "Play Games",
-    "viewMemories": "View Memories",
-    "noReminders": "No reminders found. Ask your caregiver to add some.",
-    "selectPatientFirst": "⚠️ Please select a patient first",
-    "connected": "✅ Connected (%{name})",
-    "demoData": "📋 Using demo data (%{name})",
-    "offlineData": "❌ Using offline data"
+    "greetingMorning": "Good morning",
+    "greetingAfternoon": "Good afternoon",
+    "greetingEvening": "Good evening",
+    "greetingNight": "Good night",
+    "greeting": "Welcome, %{name}",
+    "todayIs": "%{date}",
+    "myDay": "Daily Schedule",
+    "playGames": "Brain Exercises",
+    "viewMemories": "Family & Memories",
+    "noReminders": "No scheduled reminders for today.",
+    "selectPatientFirst": "Please select a patient profile",
+    "connected": "Connected (%{name})",
+    "demoData": "Demo mode (%{name})",
+    "offlineData": "Offline mode"
   },
   "games": {
-    "title": "🧠 Cognitive Games",
-    "sequenceRecall": "🔴 Sequence Recall",
-    "memoryMatch": "🃏 Memory Match",
-    "supermarket": "🛒 Supermarket",
-    "sorting": "🧺 Sorting Game",
-    "memoryPath": "🧩 Memory Path",
-    "backToMenu": "⬅️ Back to Games Menu"
+    "title": "Cognitive Exercises",
+    "sequenceRecall": "Sequence Recall",
+    "memoryMatch": "Memory Match",
+    "supermarket": "Supermarket",
+    "sorting": "Item Sorting",
+    "memoryPath": "Memory Path",
+    "backToMenu": "Back to Exercises"
   },
   "ai": {
-    "title": "AI Companion 🤖",
-    "subtitle": "Ask me anything about your family, daily reminders, or medicines.",
-    "commonQuestions": "Common Questions:",
-    "placeholder": "Type a question here...",
-    "askButton": "Ask Companion",
-    "thinking": "Thinking...",
-    "assistantLabel": "💬 Assistant",
+    "title": "Care Assistant",
+    "subtitle": "Ask questions about your daily schedule, family members, or medicine times.",
+    "commonQuestions": "Suggested Questions:",
+    "placeholder": "Type your question...",
+    "askButton": "Send",
+    "thinking": "Checking...",
+    "assistantLabel": "Assistant",
     "questionRahul": "Who is Rahul?",
     "questionPriya": "Who is Priya?",
-    "questionSchedule": "What is today's schedule?",
-    "questionMedicine": "When do I take medicine?"
+    "questionSchedule": "What is my schedule today?",
+    "questionMedicine": "When do I take my medicine?"
   },
   "memories": {
-    "title": "Family Members",
+    "title": "Family & Loved Ones",
     "loading": "Loading memories...",
     "empty": "No family members added yet."
   },
   "patient": {
-    "selectTitle": "👨‍⚕️ Select Patient",
+    "selectTitle": "Select Patient",
     "subtitle": "Choose a patient profile to personalize reminders and memories.",
     "loading": "Loading patients...",
     "empty": "No patients found.",
@@ -48,20 +52,20 @@
     "id": "ID"
   },
   "nav": {
-    "selectPatient": "Select Patient",
+    "selectPatient": "Profiles",
     "home": "Home",
     "games": "Games",
-    "memories": "Memories",
-    "ai": "AI"
+    "memories": "Family",
+    "ai": "Assistant"
   },
   "common": {
-    "back": "⬅️ Back",
-    "startGame": "🎮 Start Game",
-    "playAgain": "🔄 Play Again",
-    "restartGame": "🔄 Restart",
+    "back": "Back",
+    "startGame": "Start",
+    "playAgain": "Try Again",
+    "restartGame": "Restart",
     "loading": "Loading...",
     "error": "An error occurred",
-    "selectLanguage": "Language / ভাষা / भाषा"
+    "selectLanguage": "Language"
   }
 }
 

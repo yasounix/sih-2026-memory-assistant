@@ -40,9 +40,9 @@ const COLORS = [
 ];
 
 const DIFFICULTY_SETTINGS = {
-  Easy: { flashDuration: 750, pauseDuration: 400 },
-  Medium: { flashDuration: 550, pauseDuration: 300 },
-  Hard: { flashDuration: 380, pauseDuration: 200 },
+  Easy: { circleCount: 3, flashDuration: 850, pauseDuration: 450, description: 'Gentle: 3 Colors • Relaxed Pace' },
+  Medium: { circleCount: 4, flashDuration: 600, pauseDuration: 300, description: 'Standard: 4 Colors • Moderate Pace' },
+  Hard: { circleCount: 4, flashDuration: 400, pauseDuration: 180, description: 'Challenging: 4 Colors • Fast Pace' },
 };
 
 export default function SequenceGame({
@@ -138,7 +138,8 @@ export default function SequenceGame({
     setRound(1);
     setUserStep(0);
 
-    const firstColor = COLORS[Math.floor(Math.random() * COLORS.length)].id;
+    const activeColors = COLORS.slice(0, (DIFFICULTY_SETTINGS[difficulty] || DIFFICULTY_SETTINGS.Easy).circleCount);
+    const firstColor = activeColors[Math.floor(Math.random() * activeColors.length)].id;
     const initialSeq = [firstColor];
     setSequence(initialSeq);
 
@@ -192,8 +193,9 @@ export default function SequenceGame({
         setGameState('showing');
         setStatusMessage('Great job! Get ready for the next color...');
 
-        // Add a new random color to sequence
-        const randomColor = COLORS[Math.floor(Math.random() * COLORS.length)].id;
+        // Add a new random color to sequence from active colors
+        const activeColors = COLORS.slice(0, (DIFFICULTY_SETTINGS[difficulty] || DIFFICULTY_SETTINGS.Easy).circleCount);
+        const randomColor = activeColors[Math.floor(Math.random() * activeColors.length)].id;
         const nextSequence = [...sequence, randomColor];
         setSequence(nextSequence);
 
@@ -259,6 +261,9 @@ export default function SequenceGame({
               </TouchableOpacity>
             ))}
           </View>
+          <Text style={[styles.difficultySubtitle, { color: theme.primary }]}>
+            {DIFFICULTY_SETTINGS[difficulty]?.description}
+          </Text>
         </View>
       )}
 
@@ -279,14 +284,22 @@ export default function SequenceGame({
         )}
       </View>
 
-      {/* Circles Grid (2x2) */}
+      {/* Circles Grid */}
       <View style={styles.gridContainer}>
-        <View style={styles.row}>
-          {COLORS.slice(0, 2).map((item) => renderCircle(item))}
-        </View>
-        <View style={styles.row}>
-          {COLORS.slice(2, 4).map((item) => renderCircle(item))}
-        </View>
+        {difficulty === 'Easy' ? (
+          <View style={styles.row}>
+            {COLORS.slice(0, 3).map((item) => renderCircle(item, true))}
+          </View>
+        ) : (
+          <>
+            <View style={styles.row}>
+              {COLORS.slice(0, 2).map((item) => renderCircle(item, false))}
+            </View>
+            <View style={styles.row}>
+              {COLORS.slice(2, 4).map((item) => renderCircle(item, false))}
+            </View>
+          </>
+        )}
       </View>
 
       {/* Game Over Summary */}
@@ -328,7 +341,7 @@ export default function SequenceGame({
     </SafeAreaView>
   );
 
-  function renderCircle(item) {
+  function renderCircle(item, isLarge = false) {
     const isLit = activeCircle === item.id || userTappedCircle === item.id;
     const isInteractive = gameState === 'playing';
 
@@ -337,6 +350,7 @@ export default function SequenceGame({
         key={item.id}
         style={[
           styles.circle,
+          isLarge && styles.circleEasy,
           {
             backgroundColor: isLit ? item.activeColor : item.baseColor,
             borderColor: isLit ? '#FFFFFF' : '#1E293B',
@@ -442,6 +456,12 @@ const styles = StyleSheet.create({
   difficultyButtonTextActive: {
     color: '#FFFFFF',
   },
+  difficultySubtitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    marginTop: 8,
+    textAlign: 'center',
+  },
   statusBanner: {
     backgroundColor: '#E0F2FE',
     borderRadius: 12,
@@ -491,6 +511,12 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 3,
+  },
+  circleEasy: {
+    width: 95,
+    height: 95,
+    borderRadius: 47.5,
+    marginHorizontal: 8,
   },
   circleActive: {
     borderWidth: 4,

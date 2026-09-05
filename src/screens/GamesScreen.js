@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import SequenceGame from '../games/SequenceGame';
 import MemoryMatchGame from '../games/MemoryMatchGame';
 import SupermarketGame from '../games/SupermarketGame';
@@ -11,99 +12,178 @@ import { useNavigation } from '@react-navigation/native';
 
 export default function GamesScreen() {
   const [selectedGame, setSelectedGame] = useState(null);
-  const { theme } = useTheme();
+  const { theme, isDarkMode } = useTheme();
   const { t } = useLanguage();
   const navigation = useNavigation();
 
-  // If no game is selected, show the game menu
   if (!selectedGame) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
         <ScrollView contentContainerStyle={{ padding: 20 }}>
-          <Text style={{ fontSize: 28, fontWeight: 'bold', textAlign: 'center', marginBottom: 20, color: theme.text }}>
+          <Text style={{ fontSize: 28, fontWeight: 'bold', marginBottom: 24, color: theme.text, marginTop: 20 }}>
             {t('games.title')}
+          </Text>
+          
+          <Text style={{ fontSize: 16, color: theme.subText, marginBottom: 20 }}>
+            Select an exercise to help maintain cognitive function and memory.
           </Text>
 
           <TouchableOpacity
-            style={[styles.menuButton, { backgroundColor: '#3B82F6' }]}
+            style={[styles.menuCard, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder }]}
             onPress={() => setSelectedGame('sequence')}
           >
-            <Text style={styles.menuButtonText}>{t('games.sequenceRecall')}</Text>
+            <View style={[styles.iconContainer, { backgroundColor: isDarkMode ? '#1E3A8A' : '#EFF6FF' }]}>
+              <Ionicons name="game-controller-outline" size={24} color={theme.primary} />
+            </View>
+            <View style={styles.cardTextContainer}>
+              <Text style={[styles.menuCardTitle, { color: theme.text }]}>{t('games.sequenceRecall')}</Text>
+              <Text style={[styles.menuCardSub, { color: theme.subText }]}>Practice pattern recognition</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={theme.subText} />
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.menuButton, { backgroundColor: '#10B981' }]}
+            style={[styles.menuCard, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder }]}
             onPress={() => setSelectedGame('memory')}
           >
-            <Text style={styles.menuButtonText}>{t('games.memoryMatch')}</Text>
+            <View style={[styles.iconContainer, { backgroundColor: isDarkMode ? '#1E3A8A' : '#EFF6FF' }]}>
+              <Ionicons name="images-outline" size={24} color={theme.primary} />
+            </View>
+            <View style={styles.cardTextContainer}>
+              <Text style={[styles.menuCardTitle, { color: theme.text }]}>{t('games.memoryMatch')}</Text>
+              <Text style={[styles.menuCardSub, { color: theme.subText }]}>Improve short-term memory</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={theme.subText} />
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.menuButton, { backgroundColor: '#8B5CF6' }]}
+            style={[styles.menuCard, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder }]}
             onPress={() => setSelectedGame('supermarket')}
           >
-            <Text style={styles.menuButtonText}>{t('games.supermarket')}</Text>
+            <View style={[styles.iconContainer, { backgroundColor: isDarkMode ? '#1E3A8A' : '#EFF6FF' }]}>
+              <Ionicons name="cart-outline" size={24} color={theme.primary} />
+            </View>
+            <View style={styles.cardTextContainer}>
+              <Text style={[styles.menuCardTitle, { color: theme.text }]}>{t('games.supermarket')}</Text>
+              <Text style={[styles.menuCardSub, { color: theme.subText }]}>Practice daily tasks</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={theme.subText} />
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.menuButton, { backgroundColor: '#F59E0B' }]}
+            style={[styles.menuCard, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder }]}
             onPress={() => setSelectedGame('sorting')}
           >
-            <Text style={styles.menuButtonText}>{t('games.sorting')}</Text>
+            <View style={[styles.iconContainer, { backgroundColor: isDarkMode ? '#1E3A8A' : '#EFF6FF' }]}>
+              <Ionicons name="list-circle-outline" size={24} color={theme.primary} />
+            </View>
+            <View style={styles.cardTextContainer}>
+              <Text style={[styles.menuCardTitle, { color: theme.text }]}>{t('games.sorting')}</Text>
+              <Text style={[styles.menuCardSub, { color: theme.subText }]}>Categorize objects</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={theme.subText} />
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.menuButton, { backgroundColor: '#6366F1' }]}
+            style={[styles.menuCard, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder }]}
             onPress={() => setSelectedGame('path')}
           >
-            <Text style={styles.menuButtonText}>{t('games.memoryPath')}</Text>
+            <View style={[styles.iconContainer, { backgroundColor: isDarkMode ? '#1E3A8A' : '#EFF6FF' }]}>
+              <Ionicons name="footsteps-outline" size={24} color={theme.primary} />
+            </View>
+            <View style={styles.cardTextContainer}>
+              <Text style={[styles.menuCardTitle, { color: theme.text }]}>{t('games.memoryPath')}</Text>
+              <Text style={[styles.menuCardSub, { color: theme.subText }]}>Recall sequences</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={theme.subText} />
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.menuButton, { backgroundColor: '#EF4444' }]}
+            style={[styles.backButton, { backgroundColor: theme.cardBorder, marginTop: 10 }]}
             onPress={() => navigation.navigate('Home')}
           >
-            <Text style={styles.menuButtonText}>{t('common.back')}</Text>
+            <Ionicons name="arrow-back" size={20} color={theme.text} style={{ marginRight: 8 }} />
+            <Text style={[styles.backButtonText, { color: theme.text }]}>{t('common.back')}</Text>
           </TouchableOpacity>
         </ScrollView>
       </SafeAreaView>
     );
   }
 
-  // Render the selected game
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
+      <View style={[styles.headerBar, { backgroundColor: theme.cardBackground, borderBottomColor: theme.cardBorder }]}>
+        <TouchableOpacity style={styles.headerBack} onPress={() => setSelectedGame(null)}>
+          <Ionicons name="arrow-back" size={24} color={theme.primary} />
+          <Text style={[styles.headerBackText, { color: theme.primary }]}>{t('games.backToMenu')}</Text>
+        </TouchableOpacity>
+      </View>
       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-        <View style={{ padding: 10 }}>
+        <View style={{ flex: 1, padding: 10 }}>
           {selectedGame === 'sequence' && <SequenceGame />}
           {selectedGame === 'memory' && <MemoryMatchGame />}
           {selectedGame === 'supermarket' && <SupermarketGame />}
           {selectedGame === 'sorting' && <SortingGame />}
           {selectedGame === 'path' && <MemoryPathGame />}
         </View>
-        <TouchableOpacity
-          style={{ padding: 15, backgroundColor: '#EF4444', margin: 20, borderRadius: 10 }}
-          onPress={() => setSelectedGame(null)}
-        >
-          <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold', textAlign: 'center' }}>
-            {t('games.backToMenu')}
-          </Text>
-        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  menuButton: {
-    padding: 20,
-    borderRadius: 15,
-    marginVertical: 10,
+  menuCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+  },
+  iconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  cardTextContainer: {
+    flex: 1,
+  },
+  menuCardTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  menuCardSub: {
+    fontSize: 14,
+  },
+  backButton: {
+    flexDirection: 'row',
+    padding: 16,
+    borderRadius: 12,
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  menuButtonText: {
-    color: 'white',
-    fontSize: 22,
-    fontWeight: 'bold',
+  backButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  headerBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+  },
+  headerBack: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerBackText: {
+    fontSize: 16,
+    fontWeight: '500',
+    marginLeft: 8,
   },
 });

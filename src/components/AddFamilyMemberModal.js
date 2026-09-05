@@ -21,6 +21,7 @@ export default function AddFamilyMemberModal({ visible, onClose, patientId, onAd
   const [name, setName] = useState('');
   const [relationship, setRelationship] = useState('');
   const [description, setDescription] = useState('');
+  const [phone, setPhone] = useState('');
   const [photoUrl, setPhotoUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -40,6 +41,7 @@ export default function AddFamilyMemberModal({ visible, onClose, patientId, onAd
         name: name.trim(),
         relationship: relationship.trim(),
         description: description.trim(),
+        phone: phone.trim(),
         photo_url: photoUrl.trim() || 'https://via.placeholder.com/150/4CAF50/FFFFFF?text=Family'
       };
 
@@ -49,6 +51,7 @@ export default function AddFamilyMemberModal({ visible, onClose, patientId, onAd
       setName('');
       setRelationship('');
       setDescription('');
+      setPhone('');
       setPhotoUrl('');
       
       onAdded();
@@ -107,6 +110,16 @@ export default function AddFamilyMemberModal({ visible, onClose, patientId, onAd
               numberOfLines={3}
             />
 
+            <Text style={[styles.label, { color: theme.text }]}>Phone Number</Text>
+            <TextInput
+              style={[styles.input, { color: theme.text, borderColor: theme.cardBorder }]}
+              value={phone}
+              onChangeText={setPhone}
+              placeholder="e.g. +91 98765 43210"
+              placeholderTextColor={theme.subText}
+              keyboardType="phone-pad"
+            />
+
             <Text style={[styles.label, { color: theme.text }]}>Photo URL (Optional)</Text>
             <TextInput
               style={[styles.input, { color: theme.text, borderColor: theme.cardBorder }]}
@@ -152,21 +165,22 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   modalContainer: {
-    borderRadius: 20,
+    borderRadius: 24,
     padding: 24,
     borderWidth: 1,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.25,
-    shadowRadius: 10,
-    elevation: 5,
+    shadowRadius: 12,
+    elevation: 8,
     maxHeight: '90%',
   },
   modalTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 20,
+    marginBottom: 16,
     textAlign: 'center',
+    letterSpacing: 0.3,
   },
   label: {
     fontSize: 16,
@@ -175,13 +189,14 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   input: {
-    borderWidth: 1,
-    borderRadius: 10,
-    padding: 12,
+    borderWidth: 1.5,
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     fontSize: 16,
   },
   textArea: {
-    height: 80,
+    height: 84,
     textAlignVertical: 'top',
   },
   errorText: {
@@ -189,17 +204,18 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     textAlign: 'center',
     fontSize: 14,
+    fontWeight: '600',
   },
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 30,
-    gap: 15,
+    marginTop: 26,
+    gap: 14,
   },
   button: {
     flex: 1,
     paddingVertical: 15,
-    borderRadius: 12,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -207,14 +223,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#9CA3AF',
   },
   saveButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#059669',
   },
   disabledButton: {
     opacity: 0.7,
   },
   buttonText: {
     color: '#FFF',
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: 'bold',
   },
 });

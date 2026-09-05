@@ -1,3 +1,4 @@
+import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -17,34 +18,37 @@ const LEVELS = {
     objectCount: 4,
     storyComplexity: 'simple',
     timeBonus: 5,
+    description: 'Gentle: 4 Objects • 6s Reading Time',
   },
   Medium: {
     objectCount: 6,
     storyComplexity: 'moderate',
     timeBonus: 3,
+    description: 'Standard: 6 Objects • 4.5s Reading Time',
   },
   Hard: {
     objectCount: 8,
     storyComplexity: 'complex',
     timeBonus: 1,
+    description: 'Challenging: 8 Objects • 3s Reading Time',
   },
 };
 
 // ─── Object Database ───
 
 const OBJECTS = {
-  keys: { emoji: '🔑', label: 'Keys' },
-  glasses: { emoji: '👓', label: 'Glasses' },
-  phone: { emoji: '📱', label: 'Phone' },
-  medicine: { emoji: '💊', label: 'Medicine' },
-  wallet: { emoji: '👛', label: 'Wallet' },
-  photo: { emoji: '🖼️', label: 'Photo' },
-  flowers: { emoji: '🌺', label: 'Flowers' },
-  book: { emoji: '📖', label: 'Book' },
-  tea: { emoji: '☕', label: 'Tea Cup' },
-  hat: { emoji: '🧢', label: 'Hat' },
-  bag: { emoji: '👜', label: 'Bag' },
-  scarf: { emoji: '🧣', label: 'Scarf' },
+  keys: { icon: 'key', label: 'Keys' },
+  glasses: { icon: 'glasses', label: 'Glasses' },
+  phone: { icon: 'cellphone', label: 'Phone' },
+  medicine: { icon: 'pill', label: 'Medicine' },
+  wallet: { icon: 'wallet', label: 'Wallet' },
+  photo: { icon: 'image', label: 'Photo' },
+  flowers: { icon: 'flower', label: 'Flowers' },
+  book: { icon: 'book-open-variant', label: 'Book' },
+  tea: { icon: 'coffee', label: 'Tea Cup' },
+  hat: { icon: 'hat-fedora', label: 'Hat' },
+  bag: { icon: 'bag-personal', label: 'Bag' },
+  umbrella: { icon: 'umbrella', label: 'Umbrella' },
 };
 
 // ─── Story Database ───
@@ -179,14 +183,14 @@ export default function MemoryPathGame({
     setGameState('story');
     setSelectedObjectId(null);
     setFeedback(null);
-    setStatusMessage('📖 Reading story...');
+    setStatusMessage('Reading story...');
 
     // Auto-advance to playing after story duration
-    const storyDuration = difficulty === 'Easy' ? 5000 : difficulty === 'Medium' ? 4000 : 3000;
+    const storyDuration = difficulty === 'Easy' ? 6000 : difficulty === 'Medium' ? 4500 : 3000;
     if (storyTimerRef.current) clearTimeout(storyTimerRef.current);
     storyTimerRef.current = setTimeout(() => {
       setGameState('playing');
-      setStatusMessage('👆 Tap the correct object!');
+      setStatusMessage('Tap the correct object!');
     }, storyDuration);
   };
 
@@ -200,8 +204,8 @@ export default function MemoryPathGame({
       // Correct!
       const newScore = score + 1;
       setScore(newScore);
-      setFeedback({ type: 'correct', message: '✅ Great job!' });
-      setStatusMessage('🎉 Correct!');
+      setFeedback({ type: 'correct', message: 'Great job!' });
+      setStatusMessage('Correct!');
 
       // Move to next round after delay
       setTimeout(() => {
@@ -216,9 +220,9 @@ export default function MemoryPathGame({
       // Wrong!
       setFeedback({
         type: 'wrong',
-        message: `❌ The correct answer was: ${OBJECTS[correctObject].label}`,
+        message: `The correct answer was: ${OBJECTS[correctObject].label}`,
       });
-      setStatusMessage('❌ Try again next round!');
+      setStatusMessage('Try again next round!');
 
       // End game after wrong answer (or let them continue - choose design)
       // This version ends the game on wrong answer (encourages focus)
@@ -257,7 +261,7 @@ export default function MemoryPathGame({
       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={[styles.title, { color: theme.text }]}>🧩 Memory Path</Text>
+          <Text style={[styles.title, { color: theme.text }]}>Memory Path</Text>
         </View>
 
         {/* Stats */}
@@ -302,6 +306,9 @@ export default function MemoryPathGame({
                 </TouchableOpacity>
               ))}
             </View>
+            <Text style={[styles.difficultySubtitle, { color: theme.primary }]}>
+              {LEVELS[difficulty]?.description}
+            </Text>
           </View>
         )}
 
@@ -322,9 +329,9 @@ export default function MemoryPathGame({
         {/* Story Display */}
         {gameState === 'story' && currentStory && (
           <View style={[styles.storyContainer, { backgroundColor: isDarkMode ? '#292524' : '#FEF3C7' }]}>
-            <Text style={[styles.storyText, { color: theme.text }]}>📖 {currentStory.text}</Text>
+            <Text style={[styles.storyText, { color: theme.text }]}>{currentStory.text}</Text>
             <Text style={[styles.questionText, { color: isDarkMode ? '#FCD34D' : '#92400E' }]}>
-              ❓ {currentStory.question}
+              {currentStory.question}
             </Text>
           </View>
         )}
@@ -354,7 +361,7 @@ export default function MemoryPathGame({
                   onPress={() => handleObjectPress(objKey)}
                   disabled={gameState !== 'playing'}
                 >
-                  <Text style={styles.objectEmoji}>{OBJECTS[objKey].emoji}</Text>
+                  <MaterialCommunityIcons name={OBJECTS[objKey].icon} size={34} color={theme.primary} style={{ marginBottom: 4 }} />
                   <Text style={[styles.objectLabel, { color: theme.text }]}>{OBJECTS[objKey].label}</Text>
                 </TouchableOpacity>
               ))}
@@ -384,7 +391,7 @@ export default function MemoryPathGame({
         {/* Game Over Summary */}
         {gameState === 'gameover' && (
           <View style={[styles.gameOverContainer, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder, borderWidth: 1 }]}>
-            <Text style={[styles.gameOverTitle, { color: theme.text }]}>🏁 Game Over</Text>
+            <Text style={[styles.gameOverTitle, { color: theme.text }]}>Game Over</Text>
             <View style={[styles.resultRow, { borderBottomColor: theme.cardBorder }]}>
               <Text style={[styles.resultLabel, { color: theme.subText }]}>Final Score:</Text>
               <Text style={[styles.resultValue, { color: theme.text }]}>{score} objects</Text>
@@ -414,10 +421,10 @@ export default function MemoryPathGame({
         >
           <Text style={styles.actionButtonText}>
             {gameState === 'idle'
-              ? '🎮 Start Game'
+              ? 'Start Game'
               : gameState === 'gameover'
-              ? '🔄 Play Again'
-              : '🔄 Restart'}
+              ? 'Play Again'
+              : 'Restart'}
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -502,6 +509,12 @@ const styles = StyleSheet.create({
   },
   difficultyButtonTextActive: {
     color: '#FFFFFF',
+  },
+  difficultySubtitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    marginTop: 8,
+    textAlign: 'center',
   },
   statusBanner: {
     backgroundColor: '#E0E7FF',

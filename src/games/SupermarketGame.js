@@ -1,3 +1,4 @@
+import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -10,36 +11,36 @@ import {
 import { useTheme } from '../context/ThemeContext';
 
 const SUPERMARKET_ITEMS = [
-  { id: 'apple', label: 'Apple', emoji: '🍎' },
-  { id: 'bread', label: 'Bread', emoji: '🍞' },
-  { id: 'milk', label: 'Milk', emoji: '🥛' },
-  { id: 'banana', label: 'Banana', emoji: '🍌' },
-  { id: 'cheese', label: 'Cheese', emoji: '🧀' },
-  { id: 'carrot', label: 'Carrot', emoji: '🥕' },
-  { id: 'egg', label: 'Eggs', emoji: '🥚' },
-  { id: 'meat', label: 'Meat', emoji: '🥩' },
-  { id: 'broccoli', label: 'Broccoli', emoji: '🥦' },
-  { id: 'orange', label: 'Orange', emoji: '🍊' },
-  { id: 'tomato', label: 'Tomato', emoji: '🍅' },
-  { id: 'chicken', label: 'Chicken', emoji: '🍗' },
-  { id: 'fish', label: 'Fish', emoji: '🐟' },
-  { id: 'grapes', label: 'Grapes', emoji: '🍇' },
-  { id: 'corn', label: 'Corn', emoji: '🌽' },
-  { id: 'cookie', label: 'Cookie', emoji: '🍪' },
+  { id: 'apple', label: 'Apple', icon: 'food-apple' },
+  { id: 'bread', label: 'Bread', icon: 'bread-slice' },
+  { id: 'milk', label: 'Milk', icon: 'cup-water' },
+  { id: 'croissant', label: 'Croissant', icon: 'food-croissant' },
+  { id: 'cheese', label: 'Cheese', icon: 'cheese' },
+  { id: 'carrot', label: 'Carrot', icon: 'carrot' },
+  { id: 'egg', label: 'Eggs', icon: 'egg' },
+  { id: 'meat', label: 'Steak', icon: 'food-steak' },
+  { id: 'orange', label: 'Orange', icon: 'fruit-citrus' },
+  { id: 'chicken', label: 'Chicken', icon: 'food-drumstick' },
+  { id: 'fish', label: 'Fish', icon: 'fish' },
+  { id: 'grapes', label: 'Grapes', icon: 'fruit-grapes' },
+  { id: 'corn', label: 'Corn', icon: 'corn' },
+  { id: 'cookie', label: 'Cookie', icon: 'cookie' },
+  { id: 'cupcake', label: 'Cupcake', icon: 'cupcake' },
+  { id: 'pizza', label: 'Pizza', icon: 'pizza' },
 ];
 
 const MAX_ROUNDS = 5;
 
+const DIFFICULTY_CONFIG = {
+  Easy: { listSize: 2, shelfSize: 4, description: 'Gentle: 2 Items on List • 4 on Shelf' },
+  Medium: { listSize: 3, shelfSize: 6, description: 'Standard: 3 Items on List • 6 on Shelf' },
+  Hard: { listSize: 5, shelfSize: 10, description: 'Challenging: 5 Items on List • 10 on Shelf' },
+};
+
 function generateRoundData(difficulty) {
-  let listSize = 3;
-  let shelfSize = 6;
-  if (difficulty === 'Medium') {
-    listSize = 4;
-    shelfSize = 8;
-  } else if (difficulty === 'Hard') {
-    listSize = 5;
-    shelfSize = 10;
-  }
+  const config = DIFFICULTY_CONFIG[difficulty] || DIFFICULTY_CONFIG.Easy;
+  const listSize = config.listSize;
+  const shelfSize = config.shelfSize;
 
   // Shuffle items to pick
   const shuffled = [...SUPERMARKET_ITEMS].sort(() => Math.random() - 0.5);
@@ -152,7 +153,7 @@ export default function SupermarketGame({
       setWrongFeedbackId(null);
       
       if (newFound.length === currentRoundData.targetItems.length) {
-        setStatusMessage('Great job! 🌟 All items found!');
+        setStatusMessage('Great job! All items found!');
         
         const nextRound = round + 1;
         const delayTimer = setTimeout(() => {
@@ -167,7 +168,7 @@ export default function SupermarketGame({
         }, 1500);
         timeoutsRef.current.push(delayTimer);
       } else {
-        setStatusMessage('Great job! 🌟');
+        setStatusMessage('Great job!');
         const clearMsgTimer = setTimeout(() => {
             if(gameState === 'playing') {
                 setStatusMessage('Keep going!');
@@ -193,7 +194,7 @@ export default function SupermarketGame({
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Title */}
-        <Text style={[styles.title, { color: theme.text }]}>Supermarket Run 🛒</Text>
+        <Text style={[styles.title, { color: theme.text }]}>Supermarket Run</Text>
 
         {/* Stats Header */}
         <View style={styles.statsContainer}>
@@ -244,6 +245,9 @@ export default function SupermarketGame({
                 </TouchableOpacity>
               ))}
             </View>
+            <Text style={[styles.difficultySubtitle, { color: theme.primary }]}>
+              {DIFFICULTY_CONFIG[difficulty]?.description}
+            </Text>
           </View>
         )}
 
@@ -263,21 +267,21 @@ export default function SupermarketGame({
         {/* Shopping List */}
         {(gameState === 'playing' || gameState === 'gameover') && (
           <View style={[styles.listContainer, isDarkMode && { backgroundColor: '#292524', borderColor: '#44403c' }]}>
-            <Text style={[styles.listTitle, isDarkMode && { color: '#fef08a' }]}>📝 Shopping List</Text>
+            <Text style={[styles.listTitle, isDarkMode && { color: '#fef08a' }]}>Shopping List</Text>
             <View style={styles.listItemsWrapper}>
               {currentRoundData.targetItems.map(item => {
                 const isFound = foundItemIds.includes(item.id);
                 return (
                   <View key={item.id} style={[styles.listItem, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder }]}>
                     <Text style={styles.listCheckbox}>
-                      {isFound ? '✅' : '⬜'}
+                      <Ionicons name={isFound ? "checkmark-circle" : "ellipse-outline"} size={20} color={isFound ? theme.primary : theme.subText} />
                     </Text>
                     <Text style={[
                       styles.listText,
                       { color: theme.text },
                       isFound && styles.listTextFound
                     ]}>
-                      {item.emoji} {item.label}
+                      <MaterialCommunityIcons name={item.icon} size={18} color={theme.primary} style={{ marginRight: 4 }} /> {item.label}
                     </Text>
                   </View>
                 );
@@ -308,7 +312,7 @@ export default function SupermarketGame({
                     activeOpacity={0.7}
                     disabled={isFound}
                   >
-                    <Text style={styles.shelfEmoji}>{item.emoji}</Text>
+                    <MaterialCommunityIcons name={item.icon} size={36} color={isFound ? theme.subText : theme.primary} style={{ marginBottom: 4 }} />
                     <Text style={[styles.shelfLabel, { color: theme.text }]}>{item.label}</Text>
                     {isFound && (
                       <View style={styles.foundOverlay}>
@@ -325,7 +329,7 @@ export default function SupermarketGame({
         {/* Game Over Summary */}
         {gameState === 'gameover' && (
           <View style={[styles.gameOverCard, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder }]}>
-            <Text style={styles.gameOverTitle}>Shopping Trip Complete! 🛒</Text>
+            <Text style={styles.gameOverTitle}>Shopping Trip Complete!</Text>
             <View style={styles.resultRow}>
               <Text style={[styles.resultLabel, { color: theme.subText }]}>Total Items Found:</Text>
               <Text style={[styles.resultValue, { color: theme.text }]}>{score}</Text>
@@ -442,6 +446,12 @@ const styles = StyleSheet.create({
   },
   difficultyButtonTextActive: {
     color: '#FFFFFF',
+  },
+  difficultySubtitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginTop: 8,
+    textAlign: 'center',
   },
   statusBanner: {
     backgroundColor: '#E0F2FE',

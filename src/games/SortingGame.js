@@ -1,3 +1,4 @@
+import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -9,63 +10,76 @@ import {
 } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 
+const CATEGORY_ICONS = {
+  Fruits: 'fruit-cherries',
+  Vegetables: 'carrot',
+  Animals: 'paw',
+  Vehicles: 'car',
+};
+
 const SORTING_DATA = [
   {
     category: 'Fruits',
     items: [
-      { id: 'apple', label: 'Apple', emoji: '🍎' },
-      { id: 'banana', label: 'Banana', emoji: '🍌' },
-      { id: 'grapes', label: 'Grapes', emoji: '🍇' },
-      { id: 'strawberry', label: 'Strawberry', emoji: '🍓' },
-      { id: 'orange', label: 'Orange', emoji: '🍊' },
-      { id: 'watermelon', label: 'Watermelon', emoji: '🍉' },
+      { id: 'apple', label: 'Apple', icon: 'food-apple' },
+      { id: 'grapes', label: 'Grapes', icon: 'fruit-grapes' },
+      { id: 'cherries', label: 'Cherries', icon: 'fruit-cherries' },
+      { id: 'watermelon', label: 'Watermelon', icon: 'fruit-watermelon' },
+      { id: 'pineapple', label: 'Pineapple', icon: 'fruit-pineapple' },
+      { id: 'orange', label: 'Orange', icon: 'fruit-citrus' },
     ]
   },
   {
     category: 'Vegetables',
     items: [
-      { id: 'carrot', label: 'Carrot', emoji: '🥕' },
-      { id: 'broccoli', label: 'Broccoli', emoji: '🥦' },
-      { id: 'potato', label: 'Potato', emoji: '🥔' },
-      { id: 'corn', label: 'Corn', emoji: '🌽' },
-      { id: 'onion', label: 'Onion', emoji: '🧅' },
-      { id: 'lettuce', label: 'Lettuce', emoji: '🥬' },
+      { id: 'carrot', label: 'Carrot', icon: 'carrot' },
+      { id: 'corn', label: 'Corn', icon: 'corn' },
+      { id: 'mushroom', label: 'Mushroom', icon: 'mushroom' },
+      { id: 'pepper', label: 'Pepper', icon: 'chili-mild' },
+      { id: 'sprout', label: 'Sprout', icon: 'sprout' },
+      { id: 'salad', label: 'Salad', icon: 'leaf' },
     ]
   },
   {
     category: 'Animals',
     items: [
-      { id: 'dog', label: 'Dog', emoji: '🐶' },
-      { id: 'cat', label: 'Cat', emoji: '🐱' },
-      { id: 'rabbit', label: 'Rabbit', emoji: '🐰' },
-      { id: 'fox', label: 'Fox', emoji: '🦊' },
-      { id: 'bear', label: 'Bear', emoji: '🐻' },
-      { id: 'mouse', label: 'Mouse', emoji: '🐭' },
+      { id: 'dog', label: 'Dog', icon: 'dog' },
+      { id: 'cat', label: 'Cat', icon: 'cat' },
+      { id: 'rabbit', label: 'Rabbit', icon: 'rabbit' },
+      { id: 'bird', label: 'Bird', icon: 'bird' },
+      { id: 'fish', label: 'Fish', icon: 'fish' },
+      { id: 'horse', label: 'Horse', icon: 'horse' },
     ]
   },
   {
     category: 'Vehicles',
     items: [
-      { id: 'car', label: 'Car', emoji: '🚗' },
-      { id: 'bus', label: 'Bus', emoji: '🚌' },
-      { id: 'taxi', label: 'Taxi', emoji: '🚕' },
-      { id: 'ambulance', label: 'Ambulance', emoji: '🚑' },
-      { id: 'tractor', label: 'Tractor', emoji: '🚜' },
-      { id: 'bicycle', label: 'Bicycle', emoji: '🚲' },
+      { id: 'car', label: 'Car', icon: 'car' },
+      { id: 'bus', label: 'Bus', icon: 'bus' },
+      { id: 'taxi', label: 'Taxi', icon: 'taxi' },
+      { id: 'ambulance', label: 'Ambulance', icon: 'ambulance' },
+      { id: 'tractor', label: 'Tractor', icon: 'tractor' },
+      { id: 'bicycle', label: 'Bicycle', icon: 'bicycle' },
     ]
   }
 ];
 
 const MAX_ROUNDS = 5;
 
-function generateRoundData(difficulty) {
-  let itemsPerCategory = 2; // Easy: 4 items total
-  if (difficulty === 'Medium') itemsPerCategory = 3; // 6 items
-  else if (difficulty === 'Hard') itemsPerCategory = 4; // 8 items
+const DIFFICULTY_CONFIG = {
+  Easy: { categoryCount: 2, itemsPerCategory: 2, description: 'Gentle: 2 Categories • 4 Items' },
+  Medium: { categoryCount: 2, itemsPerCategory: 3, description: 'Standard: 2 Categories • 6 Items' },
+  Hard: { categoryCount: 3, itemsPerCategory: 3, description: 'Challenging: 3 Categories • 9 Items' },
+};
 
-  // Pick 2 random categories
+function generateRoundData(difficulty) {
+  const config = DIFFICULTY_CONFIG[difficulty] || DIFFICULTY_CONFIG.Easy;
+  const itemsPerCategory = config.itemsPerCategory;
+  const categoryCount = config.categoryCount;
+
+  // Pick random categories
   const shuffledCategories = [...SORTING_DATA].sort(() => Math.random() - 0.5);
-  const selectedCats = shuffledCategories.slice(0, 2);
+  const selectedCats = shuffledCategories.slice(0, categoryCount);
 
   const categories = selectedCats.map(c => c.category);
   
@@ -202,7 +216,7 @@ export default function SortingGame({
       setSelectedItemId(null);
       
       if (newSorted.length === currentRoundData.items.length) {
-        setStatusMessage('Great job! 🌟 All sorted!');
+        setStatusMessage('Great job! All sorted!');
         
         const nextRound = round + 1;
         const delayTimer = setTimeout(() => {
@@ -219,7 +233,7 @@ export default function SortingGame({
         }, 1500);
         timeoutsRef.current.push(delayTimer);
       } else {
-        setStatusMessage('Great job! 🌟');
+        setStatusMessage('Great job!');
         const clearMsgTimer = setTimeout(() => {
             if(gameState === 'playing') {
                 setStatusMessage('Keep going!');
@@ -253,7 +267,7 @@ export default function SortingGame({
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Title */}
-        <Text style={[styles.title, { color: theme.text }]}>Sorting Game 📦</Text>
+        <Text style={[styles.title, { color: theme.text }]}>Sorting Game</Text>
 
         {/* Stats Header */}
         <View style={styles.statsContainer}>
@@ -304,6 +318,9 @@ export default function SortingGame({
                 </TouchableOpacity>
               ))}
             </View>
+            <Text style={[styles.difficultySubtitle, { color: theme.primary }]}>
+              {DIFFICULTY_CONFIG[difficulty]?.description}
+            </Text>
           </View>
         )}
 
@@ -348,7 +365,7 @@ export default function SortingGame({
                     activeOpacity={0.7}
                     disabled={isSorted}
                   >
-                    <Text style={[styles.itemEmoji, isSorted && styles.opacityLow]}>{item.emoji}</Text>
+                    <MaterialCommunityIcons name={item.icon} size={36} color={isSorted ? theme.subText : theme.primary} style={{ marginBottom: 4 }} />
                     <Text
                       style={[
                         styles.itemLabel,
@@ -395,6 +412,12 @@ export default function SortingGame({
                   onPress={() => handleCategoryPress(category)}
                   activeOpacity={0.7}
                 >
+                  <MaterialCommunityIcons
+                    name={CATEGORY_ICONS[category] || 'folder'}
+                    size={24}
+                    color={wrongCategory === category ? '#EF4444' : (selectedItemId ? theme.primary : theme.subText)}
+                    style={{ marginBottom: 4 }}
+                  />
                   <Text
                     style={[
                       styles.categoryText,
@@ -428,7 +451,7 @@ export default function SortingGame({
         {/* Game Over Summary */}
         {gameState === 'gameover' && (
           <View style={[styles.gameOverCard, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder }]}>
-            <Text style={styles.gameOverTitle}>Sorting Complete! 📦</Text>
+            <Text style={styles.gameOverTitle}>Sorting Complete!</Text>
             <View style={styles.resultRow}>
               <Text style={[styles.resultLabel, { color: theme.subText }]}>Total Items Sorted:</Text>
               <Text style={[styles.resultValue, { color: theme.text }]}>{score}</Text>
@@ -545,6 +568,12 @@ const styles = StyleSheet.create({
   },
   difficultyButtonTextActive: {
     color: '#FFFFFF',
+  },
+  difficultySubtitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginTop: 8,
+    textAlign: 'center',
   },
   statusBanner: {
     backgroundColor: '#E0F2FE',

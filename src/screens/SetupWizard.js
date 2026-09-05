@@ -17,11 +17,11 @@ import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 
 const RELATIONSHIPS = [
-  { label: 'Son', icon: '👦' },
-  { label: 'Daughter', icon: '👧' },
-  { label: 'Spouse', icon: '💍' },
-  { label: 'Grandchild', icon: '👶' },
-  { label: 'Other', icon: '🤝' },
+  { label: 'Son', icon: 'person-outline' },
+  { label: 'Daughter', icon: 'person-outline' },
+  { label: 'Spouse', icon: 'heart-outline' },
+  { label: 'Grandchild', icon: 'people-outline' },
+  { label: 'Other', icon: 'shield-outline' },
 ];
 
 export default function SetupWizard({ onComplete }) {
@@ -30,7 +30,9 @@ export default function SetupWizard({ onComplete }) {
   const {
     patientName: initialPatientName,
     patientAge: initialPatientAge,
+    patientPhone: initialPatientPhone,
     caregiverName: initialCaregiverName,
+    caregiverPhone: initialCaregiverPhone,
     relationship: initialRelationship,
     isEditingSetup,
     closeSetupWizard,
@@ -38,7 +40,9 @@ export default function SetupWizard({ onComplete }) {
   } = usePatient();
 
   const [caregiverName, setCaregiverName] = useState('');
+  const [caregiverPhone, setCaregiverPhone] = useState('');
   const [patientName, setPatientName] = useState('');
+  const [patientPhone, setPatientPhone] = useState('');
   const [patientAge, setPatientAge] = useState('');
   const [relationship, setRelationship] = useState('Son');
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -46,15 +50,13 @@ export default function SetupWizard({ onComplete }) {
   const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
-    if (initialPatientName && initialPatientName !== 'Chandni Devi') {
-      setPatientName(initialPatientName);
-    } else if (isEditingSetup) {
-      setPatientName(initialPatientName || '');
-    }
+    if (initialPatientName) setPatientName(initialPatientName);
     if (initialCaregiverName) setCaregiverName(initialCaregiverName);
+    if (initialCaregiverPhone) setCaregiverPhone(initialCaregiverPhone);
+    if (initialPatientPhone) setPatientPhone(initialPatientPhone);
     if (initialPatientAge) setPatientAge(String(initialPatientAge));
     if (initialRelationship) setRelationship(initialRelationship);
-  }, [initialPatientName, initialCaregiverName, initialPatientAge, initialRelationship, isEditingSetup]);
+  }, [initialPatientName, initialCaregiverName, initialCaregiverPhone, initialPatientPhone, initialPatientAge, initialRelationship]);
 
   const handleSave = async () => {
     if (!patientName.trim()) {
@@ -68,7 +70,9 @@ export default function SetupWizard({ onComplete }) {
     try {
       await savePatientSetup({
         caregiverName: caregiverName.trim(),
+        caregiverPhone: caregiverPhone.trim(),
         patientName: patientName.trim(),
+        patientPhone: patientPhone.trim(),
         patientAge: patientAge.trim(),
         relationship,
       });
@@ -92,20 +96,21 @@ export default function SetupWizard({ onComplete }) {
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
         {/* Header Section */}
         <View style={styles.header}>
-          <View style={[styles.avatarPlaceholder, { backgroundColor: isDarkMode ? '#374151' : '#E0E7FF' }]}>
-            <Text style={styles.avatarEmoji}>👵</Text>
+          <View style={[styles.avatarPlaceholder, { backgroundColor: isDarkMode ? '#1E3A8A' : '#EFF6FF' }]}>
+            <Ionicons name="medical-outline" size={40} color={theme.primary} />
           </View>
 
           <Text style={[styles.title, { color: theme.text }]}>
-            {isEditingSetup ? 'Edit Patient Profile' : "Welcome! Let's set up your app."}
+            {isEditingSetup ? 'Edit Profile' : 'Setup Profile'}
           </Text>
           <Text style={[styles.subtitle, { color: theme.subText }]}>
             {isEditingSetup
-              ? 'Update details below to personalize the memory assistant.'
-              : 'Enter a few details to personalize daily reminders, memory prompts, and games.'}
+              ? 'Update caregiver and patient details below.'
+              : 'Enter patient and caregiver details to configure daily reminders and memory exercises.'}
           </Text>
         </View>
 
@@ -115,8 +120,18 @@ export default function SetupWizard({ onComplete }) {
           </View>
         ) : null}
 
-        {/* Input Fields */}
-        <View style={styles.form}>
+        {/* Caregiver Section Card */}
+        <View style={[styles.sectionCard, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder }]}>
+          <View style={styles.sectionHeaderRow}>
+            <View style={[styles.sectionIconBadge, { backgroundColor: isDarkMode ? '#1E3A8A' : '#DBEAFE' }]}>
+              <Ionicons name="person-outline" size={18} color={theme.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>Caregiver Details</Text>
+              <Text style={[styles.sectionSubtitle, { color: theme.subText }]}>Primary contact & manager</Text>
+            </View>
+          </View>
+
           {/* Caregiver Name */}
           <View style={styles.fieldGroup}>
             <Text style={[styles.label, { color: theme.text }]}>Caregiver Name</Text>
@@ -124,7 +139,7 @@ export default function SetupWizard({ onComplete }) {
               style={[
                 styles.input,
                 {
-                  backgroundColor: theme.cardBackground,
+                  backgroundColor: isDarkMode ? '#1F2937' : '#F9FAFB',
                   borderColor: theme.cardBorder,
                   color: theme.text,
                 },
@@ -140,6 +155,40 @@ export default function SetupWizard({ onComplete }) {
             />
           </View>
 
+          {/* Caregiver Phone Number */}
+          <View style={styles.fieldGroup}>
+            <Text style={[styles.label, { color: theme.text }]}>Caregiver Phone Number</Text>
+            <TextInput
+              style={[
+                styles.input,
+                {
+                  backgroundColor: isDarkMode ? '#1F2937' : '#F9FAFB',
+                  borderColor: theme.cardBorder,
+                  color: theme.text,
+                },
+              ]}
+              placeholder="e.g. +91 98765 43210"
+              placeholderTextColor={theme.subText}
+              value={caregiverPhone}
+              onChangeText={setCaregiverPhone}
+              keyboardType="phone-pad"
+              accessibilityLabel="Caregiver Phone Number input"
+            />
+          </View>
+        </View>
+
+        {/* Patient Section Card */}
+        <View style={[styles.sectionCard, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder }]}>
+          <View style={styles.sectionHeaderRow}>
+            <View style={[styles.sectionIconBadge, { backgroundColor: isDarkMode ? '#065F46' : '#D1FAE5' }]}>
+              <Ionicons name="heart-outline" size={18} color={isDarkMode ? '#34D399' : '#059669'} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>Patient Information</Text>
+              <Text style={[styles.sectionSubtitle, { color: theme.subText }]}>Person using the daily assistant</Text>
+            </View>
+          </View>
+
           {/* Patient Name */}
           <View style={styles.fieldGroup}>
             <Text style={[styles.label, { color: theme.text }]}>
@@ -149,7 +198,7 @@ export default function SetupWizard({ onComplete }) {
               style={[
                 styles.input,
                 {
-                  backgroundColor: theme.cardBackground,
+                  backgroundColor: isDarkMode ? '#1F2937' : '#F9FAFB',
                   borderColor: errorMessage ? '#EF4444' : theme.cardBorder,
                   color: theme.text,
                 },
@@ -165,49 +214,74 @@ export default function SetupWizard({ onComplete }) {
             />
           </View>
 
-          {/* Patient Age */}
+          {/* Patient Phone Number */}
           <View style={styles.fieldGroup}>
-            <Text style={[styles.label, { color: theme.text }]}>Patient Age</Text>
+            <Text style={[styles.label, { color: theme.text }]}>Patient Phone Number</Text>
             <TextInput
               style={[
                 styles.input,
                 {
-                  backgroundColor: theme.cardBackground,
+                  backgroundColor: isDarkMode ? '#1F2937' : '#F9FAFB',
                   borderColor: theme.cardBorder,
                   color: theme.text,
                 },
               ]}
-              placeholder="e.g. 72"
+              placeholder="e.g. +91 98765 12345"
               placeholderTextColor={theme.subText}
-              value={patientAge}
-              onChangeText={setPatientAge}
-              keyboardType="numeric"
-              maxLength={3}
-              accessibilityLabel="Patient Age input"
+              value={patientPhone}
+              onChangeText={setPatientPhone}
+              keyboardType="phone-pad"
+              accessibilityLabel="Patient Phone Number input"
             />
           </View>
 
-          {/* Relationship Dropdown */}
-          <View style={styles.fieldGroup}>
-            <Text style={[styles.label, { color: theme.text }]}>Relationship to Patient</Text>
-            <TouchableOpacity
-              style={[
-                styles.dropdownTrigger,
-                {
-                  backgroundColor: theme.cardBackground,
-                  borderColor: theme.cardBorder,
-                },
-              ]}
-              onPress={() => setDropdownOpen(true)}
-              activeOpacity={0.7}
-              accessibilityRole="button"
-              accessibilityLabel="Select Relationship"
-            >
-              <Text style={[styles.dropdownValue, { color: theme.text }]}>
-                {selectedRelObj.icon} {selectedRelObj.label}
-              </Text>
-              <Ionicons name="chevron-down" size={24} color={theme.subText} />
-            </TouchableOpacity>
+          {/* Age & Relationship side by side */}
+          <View style={styles.rowFields}>
+            <View style={[styles.fieldGroup, { flex: 1 }]}>
+              <Text style={[styles.label, { color: theme.text }]}>Age</Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: isDarkMode ? '#1F2937' : '#F9FAFB',
+                    borderColor: theme.cardBorder,
+                    color: theme.text,
+                  },
+                ]}
+                placeholder="72"
+                placeholderTextColor={theme.subText}
+                value={patientAge}
+                onChangeText={setPatientAge}
+                keyboardType="numeric"
+                maxLength={3}
+                accessibilityLabel="Patient Age input"
+              />
+            </View>
+
+            <View style={[styles.fieldGroup, { flex: 1.6 }]}>
+              <Text style={[styles.label, { color: theme.text }]}>Relationship</Text>
+              <TouchableOpacity
+                style={[
+                  styles.dropdownTrigger,
+                  {
+                    backgroundColor: isDarkMode ? '#1F2937' : '#F9FAFB',
+                    borderColor: theme.cardBorder,
+                  },
+                ]}
+                onPress={() => setDropdownOpen(true)}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel="Select Relationship"
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                  <Ionicons name={selectedRelObj.icon} size={18} color={theme.primary} style={{ marginRight: 8 }} />
+                  <Text style={[styles.dropdownValue, { color: theme.text }]} numberOfLines={1}>
+                    {selectedRelObj.label}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-down" size={18} color={theme.subText} />
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
 
@@ -223,7 +297,10 @@ export default function SetupWizard({ onComplete }) {
             {isSaving ? (
               <ActivityIndicator color="#FFFFFF" size="small" />
             ) : (
-              <Text style={styles.saveButtonText}>💾 Save & Continue</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Text style={styles.saveButtonText}>Save & Continue</Text>
+                <Ionicons name="checkmark-circle-outline" size={22} color="#FFFFFF" />
+              </View>
             )}
           </TouchableOpacity>
 
@@ -286,7 +363,12 @@ export default function SetupWizard({ onComplete }) {
                   }}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.optionIcon}>{item.icon}</Text>
+                  <Ionicons
+                    name={item.icon}
+                    size={20}
+                    color={isSelected ? '#2563EB' : theme.subText}
+                    style={{ marginRight: 12 }}
+                  />
                   <Text
                     style={[
                       styles.optionLabel,
@@ -299,7 +381,7 @@ export default function SetupWizard({ onComplete }) {
                     {item.label}
                   </Text>
                   {isSelected && (
-                    <Ionicons name="checkmark" size={24} color="#2563EB" style={styles.optionCheck} />
+                    <Ionicons name="checkmark" size={22} color={theme.primary} style={styles.optionCheck} />
                   )}
                 </TouchableOpacity>
               );
@@ -365,14 +447,48 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
   },
-  form: {
-    gap: 18,
+  sectionCard: {
+    padding: 20,
+    borderRadius: 20,
+    borderWidth: 1,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 5,
+    elevation: 2,
+    gap: 14,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+    gap: 12,
+  },
+  sectionIconBadge: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  sectionSubtitle: {
+    fontSize: 13,
+    marginTop: 2,
+  },
+  rowFields: {
+    flexDirection: 'row',
+    gap: 12,
   },
   fieldGroup: {
     marginBottom: 4,
   },
   label: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
     marginBottom: 8,
   },

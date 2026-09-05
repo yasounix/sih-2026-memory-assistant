@@ -1,46 +1,50 @@
 {
   "home": {
-    "greeting": "शुभ प्रभात, %{name}! 🌅",
-    "todayIs": "आज %{date} है",
-    "myDay": "मेरा दिन 📋",
-    "playGames": "खेल खेलें",
-    "viewMemories": "यादें देखें",
-    "noReminders": "कोई कार्य निर्धारित नहीं है।",
-    "selectPatientFirst": "⚠️ कृपया पहले एक मरीज़ चुनें",
-    "connected": "✅ जुड़ा हुआ (%{name})",
-    "demoData": "📋 डेमो डेटा का उपयोग किया जा रहा है (%{name})",
-    "offlineData": "❌ ऑफ़लाइन डेटा का उपयोग किया जा रहा है"
+    "greetingMorning": "शुभ प्रभात",
+    "greetingAfternoon": "शुभ दोपहर",
+    "greetingEvening": "शुभ संध्या",
+    "greetingNight": "शुभ रात्रि",
+    "greeting": "नमस्ते, %{name}",
+    "todayIs": "%{date}",
+    "myDay": "दैनिक दिनचर्या",
+    "playGames": "दिमागी अभ्यास",
+    "viewMemories": "परिवार और यादें",
+    "noReminders": "आज के लिए कोई कार्य निर्धारित नहीं है।",
+    "selectPatientFirst": "कृपया पहले एक मरीज़ प्रोफ़ाइल चुनें",
+    "connected": "जुड़ा हुआ (%{name})",
+    "demoData": "डेमो मोड (%{name})",
+    "offlineData": "ऑफ़लाइन मोड"
   },
   "games": {
-    "title": "🧠 दिमागी खेल",
-    "sequenceRecall": "🔴 अनुक्रम याद रखने का खेल",
-    "memoryMatch": "🃏 कार्ड मिलान खेल",
-    "supermarket": "🛒 सुपरमार्केट खरीदारी",
-    "sorting": "🧺 छांटने का खेल",
-    "memoryPath": "🧩 स्मृति यात्रा",
-    "backToMenu": "⬅️ खेल सूची पर वापस जाएं"
+    "title": "संज्ञानात्मक अभ्यास",
+    "sequenceRecall": "अनुक्रम स्मरण",
+    "memoryMatch": "कार्ड मिलान",
+    "supermarket": "सुपरमार्केट खरीदारी",
+    "sorting": "वस्तु वर्गीकरण",
+    "memoryPath": "स्मृति यात्रा",
+    "backToMenu": "अभ्यास सूची पर वापस जाएं"
   },
   "ai": {
-    "title": "एआई साथी 🤖",
-    "subtitle": "अपने परिवार, दैनिक दिनचर्या या दवाओं के बारे में कुछ भी पूछें।",
-    "commonQuestions": "सामान्य प्रश्न:",
-    "placeholder": "यहाँ एक प्रश्न लिखें...",
-    "askButton": "साथी से पूछें",
-    "thinking": "सोच रहा है...",
-    "assistantLabel": "💬 सहायक",
+    "title": "देखभाल सहायक",
+    "subtitle": "अपने दैनिक कार्यक्रम, परिवार के सदस्यों या दवा के समय के बारे में प्रश्न पूछें।",
+    "commonQuestions": "सुझाए गए प्रश्न:",
+    "placeholder": "अपना प्रश्न लिखें...",
+    "askButton": "भेजें",
+    "thinking": "जाँच हो रही है...",
+    "assistantLabel": "सहायक",
     "questionRahul": "राहुल कौन है?",
     "questionPriya": "प्रिया कौन है?",
-    "questionSchedule": "आज का शेड्यूल क्या है?",
+    "questionSchedule": "आज का मेरा कार्यक्रम क्या है?",
     "questionMedicine": "मुझे दवा कब लेनी है?"
   },
   "memories": {
-    "title": "मेरा परिवार 👨‍👩‍👧‍👦",
-    "loading": "परिवार की यादें लोड हो रही हैं...",
-    "empty": "परिवार का कोई सदस्य नहीं मिला।"
+    "title": "परिवार और प्रियजन",
+    "loading": "यादें लोड हो रही हैं...",
+    "empty": "परिवार का कोई सदस्य अभी तक नहीं जोड़ा गया है।"
   },
   "patient": {
-    "selectTitle": "👨‍⚕️ मरीज़ चुनें",
-    "subtitle": "याद दिलाने और स्मृतियों को निजीकृत करने के लिए मरीज़ प्रोफ़ाइल चुनें।",
+    "selectTitle": "मरीज़ चुनें",
+    "subtitle": "अनुस्मारक और यादों को वैयक्तिकृत करने के लिए मरीज़ प्रोफ़ाइल चुनें।",
     "loading": "मरीज़ों की सूची लोड हो रही है...",
     "empty": "कोई मरीज़ नहीं मिला।",
     "age": "उम्र",
@@ -48,20 +52,19 @@
     "id": "आईडी"
   },
   "nav": {
-    "selectPatient": "मरीज़ चुनें",
+    "selectPatient": "प्रोफ़ाइल",
     "home": "होम",
     "games": "खेल",
-    "memories": "यादें",
-    "ai": "एआई"
+    "memories": "परिवार",
+    "ai": "सहायक"
   },
   "common": {
-    "back": "⬅️ वापस जाएं",
-    "startGame": "🎮 खेल शुरू करें",
-    "playAgain": "🔄 फिर से खेलें",
-    "restartGame": "🔄 पुनः आरंभ करें",
-    "loading": "कृपया प्रतीक्षा करें...",
+    "back": "वापस",
+    "startGame": "प्रारंभ करें",
+    "playAgain": "फिर से खेलें",
+    "restartGame": "पुनः आरंभ करें",
+    "loading": "लोड हो रहा है...",
     "error": "एक त्रुटि हुई",
-    "selectLanguage": "भाषा बदलें"
+    "selectLanguage": "भाषा"
   }
 }
-

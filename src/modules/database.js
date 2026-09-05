@@ -77,9 +77,18 @@ export const getFamilyMembers = async (patientId) => {
 };
 
 export const addFamilyMember = async (data) => {
+  console.log('Adding family member with phone:', data);
+  const memberPayload = {
+    patient_id: data.patient_id,
+    name: data.name,
+    relationship: data.relationship,
+    description: data.description,
+    phone: data.phone || null,
+    photo_url: data.photo_url,
+  };
   const { data: result, error } = await supabase
     .from('family_members')
-    .insert([data])
+    .insert([memberPayload])
     .select();
   if (error) {
     console.error('Error adding family member:', error);

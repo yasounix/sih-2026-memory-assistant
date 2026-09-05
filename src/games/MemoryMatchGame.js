@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -8,19 +9,21 @@ import {
 } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 
-const EMOJIS = ['🍎', '🍌', '🍇', '🍉', '🍓', '🍒', '🍑', '🍊'];
+const ICONS = ['heart', 'star', 'musical-notes', 'flower', 'leaf', 'paw', 'sunny', 'moon'];
 
 const DIFFICULTY_SETTINGS = {
-  Easy: { flipBackDuration: 1400 },
-  Medium: { flipBackDuration: 1000 },
-  Hard: { flipBackDuration: 650 },
+  Easy: { pairs: 3, columns: 3, flipBackDuration: 1400, description: 'Gentle: 3 Pairs (6 Cards)' },
+  Medium: { pairs: 6, columns: 4, flipBackDuration: 1000, description: 'Standard: 6 Pairs (12 Cards)' },
+  Hard: { pairs: 8, columns: 4, flipBackDuration: 650, description: 'Challenging: 8 Pairs (16 Cards)' },
 };
 
 // Helper to shuffle cards using Fisher-Yates algorithm
-function createShuffledDeck() {
-  const deck = [...EMOJIS, ...EMOJIS].map((emoji, index) => ({
+function createShuffledDeck(diff = 'Easy') {
+  const settings = DIFFICULTY_SETTINGS[diff] || DIFFICULTY_SETTINGS.Easy;
+  const chosenIcons = ICONS.slice(0, settings.pairs);
+  const deck = [...chosenIcons, ...chosenIcons].map((icon, index) => ({
     id: index,
-    emoji,
+    icon,
   }));
 
   for (let i = deck.length - 1; i > 0; i--) {
@@ -40,7 +43,7 @@ export default function MemoryMatchGame({
   const { theme, isDarkMode } = useTheme();
   const [difficulty, setDifficulty] = useState(initialDifficulty);
   const [gameState, setGameState] = useState('idle'); // 'idle' | 'playing' | 'gameover'
-  const [cards, setCards] = useState(() => createShuffledDeck());
+  const [cards, setCards] = useState(() => createShuffledDeck(initialDifficulty));
   const [flippedIndices, setFlippedIndices] = useState([]);
   const [matchedIndices, setMatchedIndices] = useState([]);
   const [score, setScore] = useState(0); // number of attempts
@@ -79,7 +82,7 @@ export default function MemoryMatchGame({
   // Start or restart the game
   const startGame = () => {
     clearAllTimeouts();
-    const newDeck = createShuffledDeck();
+    const newDeck = createShuffledDeck(difficulty);
     setCards(newDeck);
     setFlippedIndices([]);
     setMatchedIndices([]);
@@ -133,7 +136,7 @@ export default function MemoryMatchGame({
       const nextScore = score + 1;
       setScore(nextScore);
 
-      if (cards[firstIndex].emoji === cards[index].emoji) {
+      if (cards[firstIndex].icon === cards[index].icon) {
         // Matched!
         const nextMatched = [...matchedIndices, firstIndex, index];
         setMatchedIndices(nextMatched);
@@ -178,7 +181,7 @@ export default function MemoryMatchGame({
         <View style={[styles.statCard, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder, borderWidth: 1 }]}>
           <Text style={[styles.statLabel, { color: theme.subText }]}>PAIRS</Text>
           <Text style={[styles.statValue, { color: theme.text }]}>
-            {matchedPairsCount}/8
+            {matchedPairsCount}/{cards.length / 2}
           </Text>
         </View>
         <View style={[styles.statCard, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder, borderWidth: 1 }]}>
@@ -204,7 +207,10 @@ export default function MemoryMatchGame({
                   { backgroundColor: isDarkMode ? theme.cardBorder : '#E2E8F0' },
                   difficulty === diff && styles.difficultyButtonActive,
                 ]}
-                onPress={() => setDifficulty(diff)}
+                onPress={() => {
+                  setDifficulty(diff);
+                  setCards(createShuffledDeck(diff));
+                }}
               >
                 <Text
                   style={[
@@ -218,6 +224,9 @@ export default function MemoryMatchGame({
               </TouchableOpacity>
             ))}
           </View>
+          <Text style={[styles.difficultySubtitle, { color: theme.primary }]}>
+            {DIFFICULTY_SETTINGS[difficulty]?.description}
+          </Text>
         </View>
       )}
 
@@ -233,24 +242,30 @@ export default function MemoryMatchGame({
         <Text style={[styles.statusText, { color: theme.text }]}>{statusMessage}</Text>
       </View>
 
-      {/* 4x4 Cards Grid */}
+      {/* Dynamic Cards Grid */}
       <View style={styles.gridContainer}>
-        {[0, 1, 2, 3].map((rowIndex) => (
-          <View key={rowIndex} style={styles.row}>
-            {cards
-              .slice(rowIndex * 4, rowIndex * 4 + 4)
-              .map((card, colIndex) => {
-                const cardIndex = rowIndex * 4 + colIndex;
-                return renderCard(card, cardIndex);
-              })}
-          </View>
-        ))}
+        {Array.from(
+          { length: Math.ceil(cards.length / (DIFFICULTY_SETTINGS[difficulty]?.columns || 4)) },
+          (_, rowIndex) => {
+            const cols = DIFFICULTY_SETTINGS[difficulty]?.columns || 4;
+            return (
+              <View key={rowIndex} style={styles.row}>
+                {cards
+                  .slice(rowIndex * cols, rowIndex * cols + cols)
+                  .map((card, colIndex) => {
+                    const cardIndex = rowIndex * cols + colIndex;
+                    return renderCard(card, cardIndex);
+                  })}
+              </View>
+            );
+          }
+        )}
       </View>
 
       {/* Game Over Summary */}
       {gameState === 'gameover' && (
         <View style={[styles.gameOverCard, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder }]}>
-          <Text style={styles.gameOverTitle}>Game Complete! 🎉</Text>
+          <Text style={styles.gameOverTitle}>Game Complete!</Text>
           <View style={styles.resultRow}>
             <Text style={[styles.resultLabel, { color: theme.subText }]}>Total Attempts:</Text>
             <Text style={[styles.resultValue, { color: theme.text }]}>{score}</Text>
@@ -265,7 +280,7 @@ export default function MemoryMatchGame({
           </View>
           <View style={styles.resultRow}>
             <Text style={[styles.resultLabel, { color: theme.subText }]}>Pairs Matched:</Text>
-            <Text style={[styles.resultValue, { color: theme.text }]}>8 / 8</Text>
+            <Text style={[styles.resultValue, { color: theme.text }]}>{cards.length / 2} / {cards.length / 2}</Text>
           </View>
         </View>
       )}
@@ -301,6 +316,7 @@ export default function MemoryMatchGame({
         key={card.id}
         style={[
           styles.card,
+          difficulty === 'Easy' && styles.cardLarge,
           isRevealed
             ? [styles.cardFlipped, { backgroundColor: theme.cardBackground, borderColor: isDarkMode ? '#60a5fa' : '#3B82F6' }]
             : styles.cardCovered,
@@ -311,14 +327,14 @@ export default function MemoryMatchGame({
         disabled={!isInteractive}
         activeOpacity={0.7}
         accessibilityLabel={
-          isRevealed ? `${card.emoji} card` : `Card at position ${index + 1}`
+          isRevealed ? `${card.icon} card` : `Card at position ${index + 1}`
         }
         accessibilityRole="button"
       >
         {isRevealed ? (
-          <Text style={styles.cardEmoji}>{card.emoji}</Text>
+          <Ionicons name={card.icon} size={34} color={theme.primary} />
         ) : (
-          <Text style={styles.cardCoverText}>❓</Text>
+          <Ionicons name="help" size={26} color="#93C5FD" />
         )}
       </TouchableOpacity>
     );
@@ -403,6 +419,12 @@ const styles = StyleSheet.create({
   difficultyButtonTextActive: {
     color: '#FFFFFF',
   },
+  difficultySubtitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    marginTop: 8,
+    textAlign: 'center',
+  },
   statusBanner: {
     backgroundColor: '#E0F2FE',
     borderRadius: 12,
@@ -445,6 +467,12 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 2.5,
+  },
+  cardLarge: {
+    width: 94,
+    height: 94,
+    marginHorizontal: 6,
+    marginVertical: 6,
   },
   cardCovered: {
     backgroundColor: '#2563EB',

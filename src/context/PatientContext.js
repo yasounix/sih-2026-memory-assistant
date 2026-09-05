@@ -16,10 +16,12 @@ export function PatientProvider({ children }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isEditingSetup, setIsEditingSetup] = useState(false);
 
-  const [patientId, setPatientId] = useState('P001');
-  const [patientName, setPatientName] = useState('Chandni Devi');
-  const [patientAge, setPatientAge] = useState('72');
+  const [patientId, setPatientId] = useState('');
+  const [patientName, setPatientName] = useState('');
+  const [patientAge, setPatientAge] = useState('');
+  const [patientPhone, setPatientPhone] = useState('');
   const [caregiverName, setCaregiverName] = useState('');
+  const [caregiverPhone, setCaregiverPhone] = useState('');
   const [relationship, setRelationship] = useState('');
   const [photoUrl, setPhotoUrl] = useState('');
 
@@ -42,7 +44,9 @@ export function PatientProvider({ children }) {
               if (parsed.patientId) setPatientId(parsed.patientId);
               if (parsed.patientName) setPatientName(parsed.patientName);
               if (parsed.patientAge) setPatientAge(String(parsed.patientAge));
+              if (parsed.patientPhone) setPatientPhone(parsed.patientPhone);
               if (parsed.caregiverName) setCaregiverName(parsed.caregiverName);
+              if (parsed.caregiverPhone) setCaregiverPhone(parsed.caregiverPhone);
               if (parsed.relationship) setRelationship(parsed.relationship);
               if (parsed.photoUrl) setPhotoUrl(parsed.photoUrl);
             } catch (e) {
@@ -68,15 +72,17 @@ export function PatientProvider({ children }) {
   }, []);
 
   const savePatientSetup = useCallback(async (data) => {
-    const assignedId = patientId && patientId !== 'P001'
+    const assignedId = patientId
       ? patientId
       : `P_${Date.now()}`;
 
     const profileData = {
       patientId: assignedId,
-      patientName: (data.patientName || '').trim() || 'Loved One',
+      patientName: (data.patientName || '').trim(),
       patientAge: (data.patientAge || '').toString().trim(),
+      patientPhone: (data.patientPhone || '').trim(),
       caregiverName: (data.caregiverName || '').trim(),
+      caregiverPhone: (data.caregiverPhone || '').trim(),
       relationship: data.relationship || 'Other',
       photoUrl: data.photoUrl || '',
     };
@@ -85,7 +91,9 @@ export function PatientProvider({ children }) {
     setPatientId(profileData.patientId);
     setPatientName(profileData.patientName);
     setPatientAge(profileData.patientAge);
+    setPatientPhone(profileData.patientPhone);
     setCaregiverName(profileData.caregiverName);
+    setCaregiverPhone(profileData.caregiverPhone);
     setRelationship(profileData.relationship);
     setPhotoUrl(profileData.photoUrl);
     setIsSetupDone(true);
@@ -109,6 +117,8 @@ export function PatientProvider({ children }) {
         patient_id: profileData.patientId,
         name: profileData.patientName,
         age: parseInt(profileData.patientAge, 10) || null,
+        caregiver_phone: profileData.caregiverPhone || null,
+        patient_phone: profileData.patientPhone || null,
       });
     } catch (dbErr) {
       console.warn('Supabase save error (continuing offline):', dbErr);
@@ -141,7 +151,9 @@ export function PatientProvider({ children }) {
         patientName,
         currentPatientName: patientName,
         patientAge,
+        patientPhone,
         caregiverName,
+        caregiverPhone,
         relationship,
         photoUrl,
         savePatientSetup,
@@ -159,15 +171,17 @@ export function usePatient() {
   const context = useContext(PatientContext);
   if (!context) {
     return {
-      isSetupDone: true,
+      isSetupDone: false,
       isLoading: false,
       isEditingSetup: false,
-      patientId: 'P001',
-      currentPatientId: 'P001',
-      patientName: 'Chandni Devi',
-      currentPatientName: 'Chandni Devi',
-      patientAge: '72',
+      patientId: '',
+      currentPatientId: '',
+      patientName: '',
+      currentPatientName: '',
+      patientAge: '',
+      patientPhone: '',
       caregiverName: '',
+      caregiverPhone: '',
       relationship: '',
       photoUrl: '',
       savePatientSetup: async () => {},
