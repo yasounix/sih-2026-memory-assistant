@@ -6,6 +6,7 @@ import {
   StyleSheet,
   SafeAreaView,
 } from 'react-native';
+import { useTheme } from '../context/ThemeContext';
 
 const EMOJIS = ['🍎', '🍌', '🍇', '🍉', '🍓', '🍒', '🍑', '🍊'];
 
@@ -36,6 +37,7 @@ export default function MemoryMatchGame({
   onFinish,
   onComplete,
 }) {
+  const { theme, isDarkMode } = useTheme();
   const [difficulty, setDifficulty] = useState(initialDifficulty);
   const [gameState, setGameState] = useState('idle'); // 'idle' | 'playing' | 'gameover'
   const [cards, setCards] = useState(() => createShuffledDeck());
@@ -167,38 +169,39 @@ export default function MemoryMatchGame({
   const matchedPairsCount = Math.floor(matchedIndices.length / 2);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Title */}
-      <Text style={styles.title}>Memory Match</Text>
+      <Text style={[styles.title, { color: theme.text }]}>Memory Match</Text>
 
       {/* Stats Header: Pairs Matched, Attempts/Score, Time */}
       <View style={styles.statsContainer}>
-        <View style={styles.statCard}>
-          <Text style={styles.statLabel}>PAIRS</Text>
-          <Text style={styles.statValue}>
+        <View style={[styles.statCard, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder, borderWidth: 1 }]}>
+          <Text style={[styles.statLabel, { color: theme.subText }]}>PAIRS</Text>
+          <Text style={[styles.statValue, { color: theme.text }]}>
             {matchedPairsCount}/8
           </Text>
         </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statLabel}>ATTEMPTS</Text>
-          <Text style={styles.statValue}>{score}</Text>
+        <View style={[styles.statCard, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder, borderWidth: 1 }]}>
+          <Text style={[styles.statLabel, { color: theme.subText }]}>ATTEMPTS</Text>
+          <Text style={[styles.statValue, { color: theme.text }]}>{score}</Text>
         </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statLabel}>TIME</Text>
-          <Text style={styles.statValue}>{duration}s</Text>
+        <View style={[styles.statCard, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder, borderWidth: 1 }]}>
+          <Text style={[styles.statLabel, { color: theme.subText }]}>TIME</Text>
+          <Text style={[styles.statValue, { color: theme.text }]}>{duration}s</Text>
         </View>
       </View>
 
       {/* Difficulty Selector (available before starting) */}
       {gameState === 'idle' && (
         <View style={styles.difficultyContainer}>
-          <Text style={styles.difficultyHeading}>Select Difficulty:</Text>
+          <Text style={[styles.difficultyHeading, { color: theme.subText }]}>Select Difficulty:</Text>
           <View style={styles.difficultyButtons}>
             {['Easy', 'Medium', 'Hard'].map((diff) => (
               <TouchableOpacity
                 key={diff}
                 style={[
                   styles.difficultyButton,
+                  { backgroundColor: isDarkMode ? theme.cardBorder : '#E2E8F0' },
                   difficulty === diff && styles.difficultyButtonActive,
                 ]}
                 onPress={() => setDifficulty(diff)}
@@ -206,6 +209,7 @@ export default function MemoryMatchGame({
                 <Text
                   style={[
                     styles.difficultyButtonText,
+                    { color: difficulty === diff ? '#FFFFFF' : theme.text },
                     difficulty === diff && styles.difficultyButtonTextActive,
                   ]}
                 >
@@ -221,11 +225,12 @@ export default function MemoryMatchGame({
       <View
         style={[
           styles.statusBanner,
-          gameState === 'gameover' && styles.statusBannerGameOver,
-          gameState === 'playing' && styles.statusBannerPlaying,
+          { backgroundColor: isDarkMode ? '#1e293b' : '#E0F2FE' },
+          gameState === 'gameover' && (isDarkMode ? { backgroundColor: '#143823' } : styles.statusBannerGameOver),
+          gameState === 'playing' && (isDarkMode ? { backgroundColor: '#142a42' } : styles.statusBannerPlaying),
         ]}
       >
-        <Text style={styles.statusText}>{statusMessage}</Text>
+        <Text style={[styles.statusText, { color: theme.text }]}>{statusMessage}</Text>
       </View>
 
       {/* 4x4 Cards Grid */}
@@ -244,23 +249,23 @@ export default function MemoryMatchGame({
 
       {/* Game Over Summary */}
       {gameState === 'gameover' && (
-        <View style={styles.gameOverCard}>
+        <View style={[styles.gameOverCard, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder }]}>
           <Text style={styles.gameOverTitle}>Game Complete! 🎉</Text>
           <View style={styles.resultRow}>
-            <Text style={styles.resultLabel}>Total Attempts:</Text>
-            <Text style={styles.resultValue}>{score}</Text>
+            <Text style={[styles.resultLabel, { color: theme.subText }]}>Total Attempts:</Text>
+            <Text style={[styles.resultValue, { color: theme.text }]}>{score}</Text>
           </View>
           <View style={styles.resultRow}>
-            <Text style={styles.resultLabel}>Duration:</Text>
-            <Text style={styles.resultValue}>{duration} seconds</Text>
+            <Text style={[styles.resultLabel, { color: theme.subText }]}>Duration:</Text>
+            <Text style={[styles.resultValue, { color: theme.text }]}>{duration} seconds</Text>
           </View>
           <View style={styles.resultRow}>
-            <Text style={styles.resultLabel}>Difficulty:</Text>
-            <Text style={styles.resultValue}>{difficulty}</Text>
+            <Text style={[styles.resultLabel, { color: theme.subText }]}>Difficulty:</Text>
+            <Text style={[styles.resultValue, { color: theme.text }]}>{difficulty}</Text>
           </View>
           <View style={styles.resultRow}>
-            <Text style={styles.resultLabel}>Pairs Matched:</Text>
-            <Text style={styles.resultValue}>8 / 8</Text>
+            <Text style={[styles.resultLabel, { color: theme.subText }]}>Pairs Matched:</Text>
+            <Text style={[styles.resultValue, { color: theme.text }]}>8 / 8</Text>
           </View>
         </View>
       )}
@@ -296,8 +301,10 @@ export default function MemoryMatchGame({
         key={card.id}
         style={[
           styles.card,
-          isRevealed ? styles.cardFlipped : styles.cardCovered,
-          isMatched && styles.cardMatched,
+          isRevealed
+            ? [styles.cardFlipped, { backgroundColor: theme.cardBackground, borderColor: isDarkMode ? '#60a5fa' : '#3B82F6' }]
+            : styles.cardCovered,
+          isMatched && [styles.cardMatched, isDarkMode && { backgroundColor: '#064e3b', borderColor: '#22c55e' }],
           isFlipped && styles.cardActive,
         ]}
         onPress={() => handleCardPress(index)}

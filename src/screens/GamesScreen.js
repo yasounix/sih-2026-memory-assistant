@@ -5,10 +5,12 @@ import MemoryMatchGame from '../games/MemoryMatchGame';
 import SupermarketGame from '../games/SupermarketGame';
 import SortingGame from '../games/SortingGame';
 import { useTheme } from '../context/ThemeContext';
+import { useNavigation } from '@react-navigation/native';
 
 export default function GamesScreen() {
   const [selectedGame, setSelectedGame] = useState(null);
   const { theme } = useTheme();
+  const navigation = useNavigation();
 
   // If no game is selected, show the game menu
   if (!selectedGame) {
@@ -49,7 +51,7 @@ export default function GamesScreen() {
 
           <TouchableOpacity
             style={[styles.menuButton, { backgroundColor: '#EF4444' }]}
-            onPress={() => setSelectedGame(null)}
+            onPress={() => navigation.navigate('Home')}
           >
             <Text style={styles.menuButtonText}>⬅️ Back</Text>
           </TouchableOpacity>

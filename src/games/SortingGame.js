@@ -7,6 +7,7 @@ import {
   SafeAreaView,
   ScrollView,
 } from 'react-native';
+import { useTheme } from '../context/ThemeContext';
 
 const SORTING_DATA = [
   {
@@ -91,6 +92,7 @@ export default function SortingGame({
   onFinish,
   onComplete,
 }) {
+  const { theme, isDarkMode } = useTheme();
   const [difficulty, setDifficulty] = useState(initialDifficulty);
   const [gameState, setGameState] = useState('idle'); // 'idle' | 'playing' | 'gameover'
   const [round, setRound] = useState(1);
@@ -102,6 +104,8 @@ export default function SortingGame({
   const [currentRoundData, setCurrentRoundData] = useState(() => generateRoundData(initialDifficulty));
   const [sortedItemIds, setSortedItemIds] = useState([]);
   const [selectedItemId, setSelectedItemId] = useState(null);
+  const [categoryError, setCategoryError] = useState('');
+  const [wrongCategory, setWrongCategory] = useState(null);
 
   const timeoutsRef = useRef([]);
 
@@ -138,6 +142,8 @@ export default function SortingGame({
     setRound(1);
     setSortedItemIds([]);
     setSelectedItemId(null);
+    setCategoryError('');
+    setWrongCategory(null);
     setCurrentRoundData(generateRoundData(difficulty));
     setGameState('playing');
     setStatusMessage('Select an item, then tap its category.');
@@ -187,6 +193,8 @@ export default function SortingGame({
 
     if (item.category === categoryName) {
       // Correct!
+      setCategoryError('');
+      setWrongCategory(null);
       const newSorted = [...sortedItemIds, item.id];
       setSortedItemIds(newSorted);
       const nextScore = score + 1;
@@ -204,6 +212,8 @@ export default function SortingGame({
             setRound(nextRound);
             setCurrentRoundData(generateRoundData(difficulty));
             setSortedItemIds([]);
+            setCategoryError('');
+            setWrongCategory(null);
             setStatusMessage('Select an item, then tap its category.');
           }
         }, 1500);
@@ -222,11 +232,16 @@ export default function SortingGame({
       let singularCategory = categoryName.endsWith('s') 
         ? categoryName.slice(0, -1).toLowerCase() 
         : categoryName.toLowerCase();
-        
-      setStatusMessage(`That's not a ${singularCategory}. Try again.`);
+
+      const errorMessage = `That's not a ${singularCategory}. Try again.`;
+      setWrongCategory(categoryName);
+      setCategoryError(errorMessage);
+      setStatusMessage(errorMessage);
       
       const wrongFeedbackTimer = setTimeout(() => {
         if(gameState === 'playing') {
+            setCategoryError('');
+            setWrongCategory(null);
             setStatusMessage('Select an item, then tap its category.');
         }
       }, 2500);
@@ -235,39 +250,40 @@ export default function SortingGame({
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Title */}
-        <Text style={styles.title}>Sorting Game 📦</Text>
+        <Text style={[styles.title, { color: theme.text }]}>Sorting Game 📦</Text>
 
         {/* Stats Header */}
         <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>ROUND</Text>
-            <Text style={styles.statValue}>
+          <View style={[styles.statCard, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder, borderWidth: 1 }]}>
+            <Text style={[styles.statLabel, { color: theme.subText }]}>ROUND</Text>
+            <Text style={[styles.statValue, { color: theme.text }]}>
               {gameState === 'idle' ? '-' : `${round}/${MAX_ROUNDS}`}
             </Text>
           </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>SCORE</Text>
-            <Text style={styles.statValue}>{score}</Text>
+          <View style={[styles.statCard, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder, borderWidth: 1 }]}>
+            <Text style={[styles.statLabel, { color: theme.subText }]}>SCORE</Text>
+            <Text style={[styles.statValue, { color: theme.text }]}>{score}</Text>
           </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>TIME</Text>
-            <Text style={styles.statValue}>{duration}s</Text>
+          <View style={[styles.statCard, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder, borderWidth: 1 }]}>
+            <Text style={[styles.statLabel, { color: theme.subText }]}>TIME</Text>
+            <Text style={[styles.statValue, { color: theme.text }]}>{duration}s</Text>
           </View>
         </View>
 
         {/* Difficulty Selector */}
         {gameState === 'idle' && (
           <View style={styles.difficultyContainer}>
-            <Text style={styles.difficultyHeading}>Select Difficulty:</Text>
+            <Text style={[styles.difficultyHeading, { color: theme.subText }]}>Select Difficulty:</Text>
             <View style={styles.difficultyButtons}>
               {['Easy', 'Medium', 'Hard'].map((diff) => (
                 <TouchableOpacity
                   key={diff}
                   style={[
                     styles.difficultyButton,
+                    { backgroundColor: isDarkMode ? theme.cardBorder : '#E2E8F0' },
                     difficulty === diff && styles.difficultyButtonActive,
                   ]}
                   onPress={() => {
@@ -279,6 +295,7 @@ export default function SortingGame({
                   <Text
                     style={[
                       styles.difficultyButtonText,
+                      { color: difficulty === diff ? '#FFFFFF' : theme.text },
                       difficulty === diff && styles.difficultyButtonTextActive,
                     ]}
                   >
@@ -294,12 +311,13 @@ export default function SortingGame({
         <View
           style={[
             styles.statusBanner,
-            statusMessage.includes('Great job') && styles.bannerCorrect,
-            statusMessage.includes('not a') && styles.bannerIncorrect,
-            gameState === 'gameover' && styles.bannerGameOver,
+            { backgroundColor: isDarkMode ? '#1e293b' : '#E0F2FE', borderColor: isDarkMode ? '#334155' : '#BAE6FD' },
+            statusMessage.includes('Great job') && (isDarkMode ? { backgroundColor: '#143823', borderColor: '#16a34a' } : styles.bannerCorrect),
+            statusMessage.includes('not a') && (isDarkMode ? { backgroundColor: '#450a0a', borderColor: '#dc2626' } : styles.bannerIncorrect),
+            gameState === 'gameover' && (isDarkMode ? { backgroundColor: '#1f2937', borderColor: theme.cardBorder } : styles.bannerGameOver),
           ]}
         >
-          <Text style={styles.statusText}>{statusMessage}</Text>
+          <Text style={[styles.statusText, { color: theme.text }]}>{statusMessage}</Text>
         </View>
 
         {/* Play Area */}
@@ -307,8 +325,8 @@ export default function SortingGame({
           <View style={styles.playArea}>
             
             {/* Items Grid */}
-            <Text style={styles.sectionTitle}>1. Tap an object to select it:</Text>
-            <View style={styles.itemsGrid}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>1. Tap an object to select it:</Text>
+            <View style={[styles.itemsGrid, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder }]}>
               {currentRoundData.items.map(item => {
                 const isSorted = sortedItemIds.includes(item.id);
                 const isSelected = selectedItemId === item.id;
@@ -318,7 +336,12 @@ export default function SortingGame({
                     key={item.id}
                     style={[
                       styles.itemCard,
+                      { backgroundColor: isDarkMode ? '#1e293b' : '#FFFFFF', borderColor: isDarkMode ? '#334155' : '#CBD5E1' },
                       isSelected && styles.itemCardSelected,
+                      isSelected && {
+                        backgroundColor: isDarkMode ? theme.cardBorder : '#EFF6FF',
+                        borderColor: isDarkMode ? '#60A5FA' : '#2563EB',
+                      },
                       isSorted && styles.itemCardSorted
                     ]}
                     onPress={() => handleItemPress(item)}
@@ -326,7 +349,16 @@ export default function SortingGame({
                     disabled={isSorted}
                   >
                     <Text style={[styles.itemEmoji, isSorted && styles.opacityLow]}>{item.emoji}</Text>
-                    <Text style={[styles.itemLabel, isSorted && styles.opacityLow]}>{item.label}</Text>
+                    <Text
+                      style={[
+                        styles.itemLabel,
+                        { color: theme.text },
+                        isSelected && { color: theme.text },
+                        isSorted && styles.opacityLow,
+                      ]}
+                    >
+                      {item.label}
+                    </Text>
                     {isSorted && (
                       <View style={styles.sortedOverlay}>
                         <Text style={styles.sortedCheck}>✓</Text>
@@ -338,42 +370,76 @@ export default function SortingGame({
             </View>
 
             {/* Categories */}
-            <Text style={styles.sectionTitle}>2. Tap the correct category:</Text>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>2. Tap the correct category:</Text>
             <View style={styles.categoriesRow}>
               {currentRoundData.categories.map(category => (
                 <TouchableOpacity
                   key={category}
                   style={[
                     styles.categoryCard,
+                    {
+                      backgroundColor: isDarkMode ? theme.cardBackground : '#E0E7FF',
+                      borderColor: isDarkMode ? theme.cardBorder : '#A5B4FC',
+                    },
                     // Slightly highlight categories if an item is selected to prompt action
-                    selectedItemId && styles.categoryCardPrompt
+                    selectedItemId && styles.categoryCardPrompt,
+                    selectedItemId && {
+                      backgroundColor: isDarkMode ? '#334155' : '#DBEAFE',
+                      borderColor: isDarkMode ? '#60A5FA' : '#2563EB',
+                    },
+                    wrongCategory === category && {
+                      backgroundColor: isDarkMode ? '#450A0A' : '#FEE2E2',
+                      borderColor: isDarkMode ? '#F87171' : '#DC2626',
+                    },
                   ]}
                   onPress={() => handleCategoryPress(category)}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.categoryText}>{category}</Text>
+                  <Text
+                    style={[
+                      styles.categoryText,
+                      { color: theme.text },
+                      wrongCategory === category && { color: isDarkMode ? '#FCA5A5' : '#991B1B' },
+                    ]}
+                  >
+                    {category}
+                  </Text>
                 </TouchableOpacity>
               ))}
             </View>
+            {categoryError ? (
+              <Text
+                style={[
+                  styles.categoryErrorText,
+                  {
+                    backgroundColor: isDarkMode ? '#450A0A' : '#FEE2E2',
+                    borderColor: isDarkMode ? '#F87171' : '#FCA5A5',
+                    color: isDarkMode ? '#FCA5A5' : '#991B1B',
+                  },
+                ]}
+              >
+                {categoryError}
+              </Text>
+            ) : null}
 
           </View>
         )}
 
         {/* Game Over Summary */}
         {gameState === 'gameover' && (
-          <View style={styles.gameOverCard}>
+          <View style={[styles.gameOverCard, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder }]}>
             <Text style={styles.gameOverTitle}>Sorting Complete! 📦</Text>
             <View style={styles.resultRow}>
-              <Text style={styles.resultLabel}>Total Items Sorted:</Text>
-              <Text style={styles.resultValue}>{score}</Text>
+              <Text style={[styles.resultLabel, { color: theme.subText }]}>Total Items Sorted:</Text>
+              <Text style={[styles.resultValue, { color: theme.text }]}>{score}</Text>
             </View>
             <View style={styles.resultRow}>
-              <Text style={styles.resultLabel}>Duration:</Text>
-              <Text style={styles.resultValue}>{duration} seconds</Text>
+              <Text style={[styles.resultLabel, { color: theme.subText }]}>Duration:</Text>
+              <Text style={[styles.resultValue, { color: theme.text }]}>{duration} seconds</Text>
             </View>
             <View style={styles.resultRow}>
-              <Text style={styles.resultLabel}>Difficulty:</Text>
-              <Text style={styles.resultValue}>{difficulty}</Text>
+              <Text style={[styles.resultLabel, { color: theme.subText }]}>Difficulty:</Text>
+              <Text style={[styles.resultValue, { color: theme.text }]}>{difficulty}</Text>
             </View>
           </View>
         )}
@@ -617,6 +683,17 @@ const styles = StyleSheet.create({
     color: '#1E3A8A',
     textAlign: 'center',
     paddingHorizontal: 10,
+  },
+  categoryErrorText: {
+    width: '100%',
+    marginTop: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderRadius: 10,
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
   gameOverCard: {
     backgroundColor: '#FFFFFF',

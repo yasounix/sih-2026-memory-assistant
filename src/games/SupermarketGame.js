@@ -7,6 +7,7 @@ import {
   SafeAreaView,
   ScrollView,
 } from 'react-native';
+import { useTheme } from '../context/ThemeContext';
 
 const SUPERMARKET_ITEMS = [
   { id: 'apple', label: 'Apple', emoji: '🍎' },
@@ -64,6 +65,7 @@ export default function SupermarketGame({
   onFinish,
   onComplete,
 }) {
+  const { theme, isDarkMode } = useTheme();
   const [difficulty, setDifficulty] = useState(initialDifficulty);
   const [gameState, setGameState] = useState('idle'); // 'idle' | 'playing' | 'gameover'
   const [round, setRound] = useState(1);
@@ -188,39 +190,40 @@ export default function SupermarketGame({
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Title */}
-        <Text style={styles.title}>Supermarket Run 🛒</Text>
+        <Text style={[styles.title, { color: theme.text }]}>Supermarket Run 🛒</Text>
 
         {/* Stats Header */}
         <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>ROUND</Text>
-            <Text style={styles.statValue}>
+          <View style={[styles.statCard, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder, borderWidth: 1 }]}>
+            <Text style={[styles.statLabel, { color: theme.subText }]}>ROUND</Text>
+            <Text style={[styles.statValue, { color: theme.text }]}>
               {gameState === 'idle' ? '-' : `${round}/${MAX_ROUNDS}`}
             </Text>
           </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>SCORE</Text>
-            <Text style={styles.statValue}>{score}</Text>
+          <View style={[styles.statCard, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder, borderWidth: 1 }]}>
+            <Text style={[styles.statLabel, { color: theme.subText }]}>SCORE</Text>
+            <Text style={[styles.statValue, { color: theme.text }]}>{score}</Text>
           </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>TIME</Text>
-            <Text style={styles.statValue}>{duration}s</Text>
+          <View style={[styles.statCard, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder, borderWidth: 1 }]}>
+            <Text style={[styles.statLabel, { color: theme.subText }]}>TIME</Text>
+            <Text style={[styles.statValue, { color: theme.text }]}>{duration}s</Text>
           </View>
         </View>
 
         {/* Difficulty Selector */}
         {gameState === 'idle' && (
           <View style={styles.difficultyContainer}>
-            <Text style={styles.difficultyHeading}>Select Difficulty:</Text>
+            <Text style={[styles.difficultyHeading, { color: theme.subText }]}>Select Difficulty:</Text>
             <View style={styles.difficultyButtons}>
               {['Easy', 'Medium', 'Hard'].map((diff) => (
                 <TouchableOpacity
                   key={diff}
                   style={[
                     styles.difficultyButton,
+                    { backgroundColor: isDarkMode ? theme.cardBorder : '#E2E8F0' },
                     difficulty === diff && styles.difficultyButtonActive,
                   ]}
                   onPress={() => {
@@ -232,6 +235,7 @@ export default function SupermarketGame({
                   <Text
                     style={[
                       styles.difficultyButtonText,
+                      { color: difficulty === diff ? '#FFFFFF' : theme.text },
                       difficulty === diff && styles.difficultyButtonTextActive,
                     ]}
                   >
@@ -247,28 +251,30 @@ export default function SupermarketGame({
         <View
           style={[
             styles.statusBanner,
-            statusMessage.includes('Great job') && styles.bannerCorrect,
-            statusMessage.includes('not on the list') && styles.bannerIncorrect,
-            gameState === 'gameover' && styles.bannerGameOver,
+            { backgroundColor: isDarkMode ? '#1e293b' : '#E0F2FE', borderColor: isDarkMode ? '#334155' : '#BAE6FD' },
+            statusMessage.includes('Great job') && (isDarkMode ? { backgroundColor: '#143823', borderColor: '#16a34a' } : styles.bannerCorrect),
+            statusMessage.includes('not on the list') && (isDarkMode ? { backgroundColor: '#450a0a', borderColor: '#dc2626' } : styles.bannerIncorrect),
+            gameState === 'gameover' && (isDarkMode ? { backgroundColor: '#1f2937', borderColor: theme.cardBorder } : styles.bannerGameOver),
           ]}
         >
-          <Text style={styles.statusText}>{statusMessage}</Text>
+          <Text style={[styles.statusText, { color: theme.text }]}>{statusMessage}</Text>
         </View>
 
         {/* Shopping List */}
         {(gameState === 'playing' || gameState === 'gameover') && (
-          <View style={styles.listContainer}>
-            <Text style={styles.listTitle}>📝 Shopping List</Text>
+          <View style={[styles.listContainer, isDarkMode && { backgroundColor: '#292524', borderColor: '#44403c' }]}>
+            <Text style={[styles.listTitle, isDarkMode && { color: '#fef08a' }]}>📝 Shopping List</Text>
             <View style={styles.listItemsWrapper}>
               {currentRoundData.targetItems.map(item => {
                 const isFound = foundItemIds.includes(item.id);
                 return (
-                  <View key={item.id} style={styles.listItem}>
+                  <View key={item.id} style={[styles.listItem, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder }]}>
                     <Text style={styles.listCheckbox}>
                       {isFound ? '✅' : '⬜'}
                     </Text>
                     <Text style={[
                       styles.listText,
+                      { color: theme.text },
                       isFound && styles.listTextFound
                     ]}>
                       {item.emoji} {item.label}
@@ -282,8 +288,8 @@ export default function SupermarketGame({
 
         {/* Supermarket Shelf */}
         {gameState === 'playing' && (
-          <View style={styles.shelfContainer}>
-            <Text style={styles.shelfTitle}>Supermarket Shelf</Text>
+          <View style={[styles.shelfContainer, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder }]}>
+            <Text style={[styles.shelfTitle, { color: theme.text }]}>Supermarket Shelf</Text>
             <View style={styles.shelfGrid}>
               {currentRoundData.shelfItems.map(item => {
                 const isFound = foundItemIds.includes(item.id);
@@ -294,6 +300,7 @@ export default function SupermarketGame({
                     key={item.id}
                     style={[
                       styles.shelfItem,
+                      { backgroundColor: isDarkMode ? '#1e293b' : '#FFFFFF', borderColor: isDarkMode ? '#334155' : '#CBD5E1' },
                       isFound && styles.shelfItemFound,
                       isWrong && styles.shelfItemWrong
                     ]}
@@ -302,7 +309,7 @@ export default function SupermarketGame({
                     disabled={isFound}
                   >
                     <Text style={styles.shelfEmoji}>{item.emoji}</Text>
-                    <Text style={styles.shelfLabel}>{item.label}</Text>
+                    <Text style={[styles.shelfLabel, { color: theme.text }]}>{item.label}</Text>
                     {isFound && (
                       <View style={styles.foundOverlay}>
                         <Text style={styles.foundCheck}>✓</Text>
@@ -317,19 +324,19 @@ export default function SupermarketGame({
 
         {/* Game Over Summary */}
         {gameState === 'gameover' && (
-          <View style={styles.gameOverCard}>
+          <View style={[styles.gameOverCard, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder }]}>
             <Text style={styles.gameOverTitle}>Shopping Trip Complete! 🛒</Text>
             <View style={styles.resultRow}>
-              <Text style={styles.resultLabel}>Total Items Found:</Text>
-              <Text style={styles.resultValue}>{score}</Text>
+              <Text style={[styles.resultLabel, { color: theme.subText }]}>Total Items Found:</Text>
+              <Text style={[styles.resultValue, { color: theme.text }]}>{score}</Text>
             </View>
             <View style={styles.resultRow}>
-              <Text style={styles.resultLabel}>Duration:</Text>
-              <Text style={styles.resultValue}>{duration} seconds</Text>
+              <Text style={[styles.resultLabel, { color: theme.subText }]}>Duration:</Text>
+              <Text style={[styles.resultValue, { color: theme.text }]}>{duration} seconds</Text>
             </View>
             <View style={styles.resultRow}>
-              <Text style={styles.resultLabel}>Difficulty:</Text>
-              <Text style={styles.resultValue}>{difficulty}</Text>
+              <Text style={[styles.resultLabel, { color: theme.subText }]}>Difficulty:</Text>
+              <Text style={[styles.resultValue, { color: theme.text }]}>{difficulty}</Text>
             </View>
           </View>
         )}
