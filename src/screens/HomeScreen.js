@@ -1,8 +1,10 @@
 import React from 'react';
 import { Text, View, Button, ScrollView } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { reminders } from '../modules/memoryData';
 
 export default function HomeScreen() {
+  const navigation = useNavigation();
   return (
     <ScrollView style={{ flex: 1, padding: 20, backgroundColor: '#f5f5f5' }}>
       <Text style={{ fontSize: 28, fontWeight: 'bold', marginTop: 20 }}>
@@ -26,10 +28,10 @@ export default function HomeScreen() {
       
       <View style={{ marginTop: 20, flexDirection: 'row', justifyContent: 'space-around' }}>
         <View style={{ width: '45%' }}>
-          <Button title="Play Games" color="#2196F3" onPress={() => {}} />
+          <Button title="Play Games" color="#2196F3" onPress={() => navigation.navigate('Games')} />
         </View>
         <View style={{ width: '45%' }}>
-          <Button title="View Memories" color="#4CAF50" onPress={() => {}} />
+          <Button title="View Memories" color="#4CAF50" onPress={() => navigation.navigate('Memories')} />
         </View>
       </View>
     </ScrollView>
