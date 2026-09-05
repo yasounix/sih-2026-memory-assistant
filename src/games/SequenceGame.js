@@ -6,6 +6,7 @@ import {
   StyleSheet,
   SafeAreaView,
 } from 'react-native';
+import { useTheme } from '../context/ThemeContext';
 
 const COLORS = [
   {
@@ -50,6 +51,7 @@ export default function SequenceGame({
   onFinish,
   onComplete,
 }) {
+  const { theme, isDarkMode } = useTheme();
   const [difficulty, setDifficulty] = useState(initialDifficulty);
   const [gameState, setGameState] = useState('idle'); // 'idle' | 'showing' | 'playing' | 'gameover'
   const [sequence, setSequence] = useState([]);
@@ -210,36 +212,37 @@ export default function SequenceGame({
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Title */}
-      <Text style={styles.title}>Sequence Recall</Text>
+      <Text style={[styles.title, { color: theme.text }]}>Sequence Recall</Text>
 
       {/* Stats Header: Round, Score, Time */}
       <View style={styles.statsContainer}>
-        <View style={styles.statCard}>
-          <Text style={styles.statLabel}>ROUND</Text>
-          <Text style={styles.statValue}>{gameState === 'idle' ? '-' : round}</Text>
+        <View style={[styles.statCard, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder, borderWidth: 1 }]}>
+          <Text style={[styles.statLabel, { color: theme.subText }]}>ROUND</Text>
+          <Text style={[styles.statValue, { color: theme.text }]}>{gameState === 'idle' ? '-' : round}</Text>
         </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statLabel}>SCORE</Text>
-          <Text style={styles.statValue}>{score}</Text>
+        <View style={[styles.statCard, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder, borderWidth: 1 }]}>
+          <Text style={[styles.statLabel, { color: theme.subText }]}>SCORE</Text>
+          <Text style={[styles.statValue, { color: theme.text }]}>{score}</Text>
         </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statLabel}>TIME</Text>
-          <Text style={styles.statValue}>{duration}s</Text>
+        <View style={[styles.statCard, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder, borderWidth: 1 }]}>
+          <Text style={[styles.statLabel, { color: theme.subText }]}>TIME</Text>
+          <Text style={[styles.statValue, { color: theme.text }]}>{duration}s</Text>
         </View>
       </View>
 
       {/* Difficulty Selector (available before starting) */}
       {gameState === 'idle' && (
         <View style={styles.difficultyContainer}>
-          <Text style={styles.difficultyHeading}>Select Difficulty:</Text>
+          <Text style={[styles.difficultyHeading, { color: theme.subText }]}>Select Difficulty:</Text>
           <View style={styles.difficultyButtons}>
             {['Easy', 'Medium', 'Hard'].map((diff) => (
               <TouchableOpacity
                 key={diff}
                 style={[
                   styles.difficultyButton,
+                  { backgroundColor: isDarkMode ? theme.cardBorder : '#E2E8F0' },
                   difficulty === diff && styles.difficultyButtonActive,
                 ]}
                 onPress={() => setDifficulty(diff)}
@@ -247,6 +250,7 @@ export default function SequenceGame({
                 <Text
                   style={[
                     styles.difficultyButtonText,
+                    { color: difficulty === diff ? '#FFFFFF' : theme.text },
                     difficulty === diff && styles.difficultyButtonTextActive,
                   ]}
                 >
@@ -262,13 +266,14 @@ export default function SequenceGame({
       <View
         style={[
           styles.statusBanner,
-          gameState === 'gameover' && styles.statusBannerGameOver,
-          gameState === 'playing' && styles.statusBannerPlaying,
+          { backgroundColor: isDarkMode ? '#1e293b' : '#E0F2FE' },
+          gameState === 'gameover' && (isDarkMode ? { backgroundColor: '#450a0a' } : styles.statusBannerGameOver),
+          gameState === 'playing' && (isDarkMode ? { backgroundColor: '#052e16' } : styles.statusBannerPlaying),
         ]}
       >
-        <Text style={styles.statusText}>{statusMessage}</Text>
+        <Text style={[styles.statusText, { color: theme.text }]}>{statusMessage}</Text>
         {gameState === 'playing' && (
-          <Text style={styles.progressSubText}>
+          <Text style={[styles.progressSubText, isDarkMode && { color: '#86efac' }]}>
             Step {userStep + 1} of {sequence.length}
           </Text>
         )}
@@ -286,19 +291,19 @@ export default function SequenceGame({
 
       {/* Game Over Summary */}
       {gameState === 'gameover' && (
-        <View style={styles.gameOverCard}>
+        <View style={[styles.gameOverCard, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder }]}>
           <Text style={styles.gameOverTitle}>Game Over</Text>
           <View style={styles.resultRow}>
-            <Text style={styles.resultLabel}>Final Score:</Text>
-            <Text style={styles.resultValue}>{score} correct rounds</Text>
+            <Text style={[styles.resultLabel, { color: theme.subText }]}>Final Score:</Text>
+            <Text style={[styles.resultValue, { color: theme.text }]}>{score} correct rounds</Text>
           </View>
           <View style={styles.resultRow}>
-            <Text style={styles.resultLabel}>Duration:</Text>
-            <Text style={styles.resultValue}>{duration} seconds</Text>
+            <Text style={[styles.resultLabel, { color: theme.subText }]}>Duration:</Text>
+            <Text style={[styles.resultValue, { color: theme.text }]}>{duration} seconds</Text>
           </View>
           <View style={styles.resultRow}>
-            <Text style={styles.resultLabel}>Difficulty:</Text>
-            <Text style={styles.resultValue}>{difficulty}</Text>
+            <Text style={[styles.resultLabel, { color: theme.subText }]}>Difficulty:</Text>
+            <Text style={[styles.resultValue, { color: theme.text }]}>{difficulty}</Text>
           </View>
         </View>
       )}
