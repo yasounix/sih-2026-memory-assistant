@@ -4,17 +4,24 @@ import SequenceGame from '../games/SequenceGame';
 import MemoryMatchGame from '../games/MemoryMatchGame';
 import SupermarketGame from '../games/SupermarketGame';
 import SortingGame from '../games/SortingGame';
+<<<<<<< HEAD
 import MemoryPathGame from '../games/MemoryPathGame';
+=======
+import { useTheme } from '../context/ThemeContext';
+import { useNavigation } from '@react-navigation/native';
+>>>>>>> c5603c822cd9152f6932b6e5b40571db78e107d4
 
 export default function GamesScreen() {
   const [selectedGame, setSelectedGame] = useState(null);
+  const { theme } = useTheme();
+  const navigation = useNavigation();
 
   // If no game is selected, show the game menu
   if (!selectedGame) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#F8FAFC' }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
         <ScrollView contentContainerStyle={{ padding: 20 }}>
-          <Text style={{ fontSize: 28, fontWeight: 'bold', textAlign: 'center', marginBottom: 20 }}>
+          <Text style={{ fontSize: 28, fontWeight: 'bold', textAlign: 'center', marginBottom: 20, color: theme.text }}>
             🧠 Cognitive Games
           </Text>
 
@@ -55,7 +62,7 @@ export default function GamesScreen() {
 
           <TouchableOpacity
             style={[styles.menuButton, { backgroundColor: '#EF4444' }]}
-            onPress={() => setSelectedGame(null)}
+            onPress={() => navigation.navigate('Home')}
           >
             <Text style={styles.menuButtonText}>⬅️ Back</Text>
           </TouchableOpacity>
@@ -66,7 +73,7 @@ export default function GamesScreen() {
 
   // Render the selected game
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#F8FAFC' }}>
+  <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
         <View style={{ padding: 10 }}>
           {selectedGame === 'sequence' && <SequenceGame />}
