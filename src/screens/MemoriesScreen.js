@@ -55,7 +55,7 @@ export default function MemoriesScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={styles.content}>
         <View style={styles.headerRow}>
-          <View>
+          <View style={styles.headerTitle}>
             <Text style={[styles.title, { color: theme.text }]}>
               {t('memories.title')}
             </Text>
@@ -162,9 +162,15 @@ const styles = StyleSheet.create({
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    width: '100%',
     marginBottom: 20,
     marginTop: 4,
+  },
+  headerTitle: {
+    flex: 1,
+    minWidth: 0,
+    marginRight: 12,
   },
   title: {
     fontSize: 28,
@@ -180,7 +186,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#059669',
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    justifyContent: 'center',
+    flexShrink: 0,
+    minHeight: 42,
+    paddingHorizontal: 12,
     paddingVertical: 9,
     borderRadius: 20,
     shadowColor: '#000',
