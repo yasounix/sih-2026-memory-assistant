@@ -6,6 +6,7 @@ import MemoryMatchGame from '../games/MemoryMatchGame';
 import SupermarketGame from '../games/SupermarketGame';
 import SortingGame from '../games/SortingGame';
 import MemoryPathGame from '../games/MemoryPathGame';
+import DhopkhelGame from '../games/DhopkhelGame';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useNavigation } from '@react-navigation/native';
@@ -27,6 +28,20 @@ export default function GamesScreen() {
           <Text style={{ fontSize: 16, color: theme.subText, marginBottom: 20 }}>
             Select an exercise to help maintain cognitive function and memory.
           </Text>
+
+          <TouchableOpacity
+            style={[styles.menuCard, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder }]}
+            onPress={() => setSelectedGame('dhopkhel')}
+          >
+            <View style={[styles.iconContainer, { backgroundColor: isDarkMode ? '#14532D' : '#DCFCE7' }]}>
+              <Ionicons name="sparkles" size={24} color="#15803D" />
+            </View>
+            <View style={styles.cardTextContainer}>
+              <Text style={[styles.menuCardTitle, { color: theme.text }]}>Dhopkhel Memory</Text>
+              <Text style={[styles.menuCardSub, { color: theme.subText }]}>Watch · Remember · Find the Dhop</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={theme.subText} />
+          </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.menuCard, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder }]}
@@ -110,6 +125,14 @@ export default function GamesScreen() {
     );
   }
 
+  if (selectedGame === 'dhopkhel') {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
+        <DhopkhelGame onExit={() => setSelectedGame(null)} />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
       <View style={[styles.headerBar, { backgroundColor: theme.cardBackground, borderBottomColor: theme.cardBorder }]}>
@@ -130,6 +153,7 @@ export default function GamesScreen() {
     </SafeAreaView>
   );
 }
+
 
 const styles = StyleSheet.create({
   menuCard: {
