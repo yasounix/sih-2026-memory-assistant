@@ -8,6 +8,7 @@ import SortingGame from '../games/SortingGame';
 import MemoryPathGame from '../games/MemoryPathGame';
 import DhopkhelGame from '../games/DhopkhelGame';
 import NortheastMemoryGame from '../games/NortheastMemoryGame';
+import MemoryStoriesGame from '../games/MemoryStoriesGame';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useNavigation } from '@react-navigation/native';
@@ -53,8 +54,24 @@ export default function GamesScreen() {
               <Ionicons name="sparkles" size={24} color="#15803D" />
             </View>
             <View style={styles.cardTextContainer}>
-              <Text style={[styles.menuCardTitle, { color: theme.text }]}>Dhopkhel Memory</Text>
-              <Text style={[styles.menuCardSub, { color: theme.subText }]}>Watch · Remember · Find the Dhop</Text>
+              <Text style={[styles.menuCardTitle, { color: theme.text }]}>{t('games.dhopkhel.title')}</Text>
+              <Text style={[styles.menuCardSub, { color: theme.subText }]}>{t('games.dhopkhel.tagline')}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={theme.subText} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.menuCard, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder }]}
+            onPress={() => setSelectedGame('stories')}
+            accessibilityRole="button"
+            accessibilityLabel={`${t('games.memoryStoriesTitle')}, ${t('games.memoryStoriesSub')}`}
+          >
+            <View style={[styles.iconContainer, { backgroundColor: isDarkMode ? '#1E3A8A' : '#EFF6FF' }]}>
+              <Ionicons name="book-outline" size={24} color={theme.primary} />
+            </View>
+            <View style={styles.cardTextContainer}>
+              <Text style={[styles.menuCardTitle, { color: theme.text }]}>{t('games.memoryStoriesTitle')}</Text>
+              <Text style={[styles.menuCardSub, { color: theme.subText }]}>{t('games.memoryStoriesSub')}</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={theme.subText} />
           </TouchableOpacity>
@@ -158,6 +175,14 @@ export default function GamesScreen() {
           onComplete={(summary) => console.log('North East Memory completed:', summary)}
           onGameOver={(summary) => console.log('North East Memory game over:', summary)}
         />
+      </SafeAreaView>
+    );
+  }
+
+  if (selectedGame === 'stories') {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
+        <MemoryStoriesGame onExit={() => setSelectedGame(null)} />
       </SafeAreaView>
     );
   }
