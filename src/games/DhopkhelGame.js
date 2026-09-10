@@ -25,49 +25,49 @@ const SCREENS = {
   SETTINGS: 'settings',
 };
 
-// Difficulty specifications
-const LEVELS = {
+// Difficulty level configurations (keys mapped to translations)
+const LEVEL_CONFIGS = {
   easy: {
     id: 'easy',
-    name: 'GENTLE DHOP',
-    badge: 'Level 1 · Easy',
-    subtitle: '2 passes · Very slow pace',
+    nameKey: 'games.dhopkhel.levelEasyName',
+    badgeKey: 'games.dhopkhel.levelEasyBadge',
+    subtitleKey: 'games.dhopkhel.levelEasySubtitle',
+    descKey: 'games.dhopkhel.levelEasyDesc',
     moves: 2,
-    holdDuration: 2400,
-    travelDuration: 1800,
+    holdDuration: 1200,
+    travelDuration: 900,
     dots: 2,
-    description: 'A very gentle sequence with generous observation time. No rush.',
   },
   medium: {
     id: 'medium',
-    name: 'DHOP MEMORY',
-    badge: 'Level 2 · Medium',
-    subtitle: '4 passes · Calm sequence',
+    nameKey: 'games.dhopkhel.levelMediumName',
+    badgeKey: 'games.dhopkhel.levelMediumBadge',
+    subtitleKey: 'games.dhopkhel.levelMediumSubtitle',
+    descKey: 'games.dhopkhel.levelMediumDesc',
     moves: 4,
-    holdDuration: 2000,
-    travelDuration: 1500,
+    holdDuration: 1000,
+    travelDuration: 750,
     dots: 4,
-    description: 'A few more passes to practice short-term recall. Still slow and steady.',
   },
   hard: {
     id: 'hard',
-    name: 'DHOP MASTER',
-    badge: 'Level 3 · Hard',
-    subtitle: '6 passes · Memory challenge',
+    nameKey: 'games.dhopkhel.levelHardName',
+    badgeKey: 'games.dhopkhel.levelHardBadge',
+    subtitleKey: 'games.dhopkhel.levelHardSubtitle',
+    descKey: 'games.dhopkhel.levelHardDesc',
     moves: 6,
-    holdDuration: 1800,
-    travelDuration: 1400,
+    holdDuration: 900,
+    travelDuration: 700,
     dots: 6,
-    description: 'More passes for a deeper memory exercise. Speed stays calm and comfortable.',
   },
 };
 
-// Player details (distinguishable, respectful, dignified)
-const PLAYERS = [
+// Player configurations (keys mapped to translations)
+const PLAYER_CONFIGS = [
   {
     id: 1,
-    name: 'PLAYER 1',
-    label: 'Player 1',
+    nameKey: 'games.dhopkhel.player1',
+    labelKey: 'games.dhopkhel.player1Label',
     color: '#059669', // Emerald
     bgLight: '#D1FAE5',
     bgDark: '#064E3B',
@@ -75,8 +75,8 @@ const PLAYERS = [
   },
   {
     id: 2,
-    name: 'PLAYER 2',
-    label: 'Player 2',
+    nameKey: 'games.dhopkhel.player2',
+    labelKey: 'games.dhopkhel.player2Label',
     color: '#2563EB', // Blue
     bgLight: '#DBEAFE',
     bgDark: '#1E3A8A',
@@ -84,8 +84,8 @@ const PLAYERS = [
   },
   {
     id: 3,
-    name: 'PLAYER 3',
-    label: 'Player 3',
+    nameKey: 'games.dhopkhel.player3',
+    labelKey: 'games.dhopkhel.player3Label',
     color: '#D97706', // Amber / Terracotta
     bgLight: '#FEF3C7',
     bgDark: '#78350F',
@@ -98,7 +98,7 @@ const PLAYERS = [
 ------------------------------------------------------------- */
 
 // Soft Assamese Dhop ball
-function DhopBall({ size = 46, contrast = 'normal' }) {
+function DhopBall({ size = 46, contrast = 'normal', accessibilityLabel }) {
   const isHighContrast = contrast === 'high';
   const mainColor = isHighContrast ? '#FFFF00' : '#DC2626';
   const borderColor = isHighContrast ? '#000000' : '#991B1B';
@@ -118,7 +118,7 @@ function DhopBall({ size = 46, contrast = 'normal' }) {
         },
       ]}
       accessibilityRole="image"
-      accessibilityLabel="Dhop ball"
+      accessibilityLabel={accessibilityLabel || 'Dhop ball'}
     >
       {/* Traditional cloth quarter-stitching details */}
       <View
@@ -170,7 +170,6 @@ function DhopBall({ size = 46, contrast = 'normal' }) {
 function PlayerAvatar({
   player,
   hasDhop = false,
-  isTarget = false,
   contrast = 'normal',
   isDarkMode = false,
   scale = 1,
@@ -367,7 +366,7 @@ function AssamLandscape({ contrast = 'normal', isDarkMode = false }) {
 }
 
 // Spoken voice caption banner
-function VoiceCaption({ text, enabled = true, contrast = 'normal' }) {
+function VoiceCaption({ text, enabled = true, contrast = 'normal', accessibilityLabel }) {
   if (!text || !enabled) return null;
   const isHighContrast = contrast === 'high';
 
@@ -381,7 +380,7 @@ function VoiceCaption({ text, enabled = true, contrast = 'normal' }) {
         },
       ]}
       accessibilityRole="text"
-      accessibilityLabel={`Voice instruction: ${text}`}
+      accessibilityLabel={accessibilityLabel || `Voice instruction: ${text}`}
     >
       <Ionicons
         name="volume-medium"
@@ -406,7 +405,7 @@ function VoiceCaption({ text, enabled = true, contrast = 'normal' }) {
 ------------------------------------------------------------- */
 export default function DhopkhelGame({ onExit }) {
   const { theme, isDarkMode } = useTheme();
-  const { t } = useLanguage();
+  const { t, currentLanguage } = useLanguage();
 
   // Navigation screen
   const [screen, setScreen] = useState(SCREENS.WELCOME);
@@ -426,8 +425,11 @@ export default function DhopkhelGame({ onExit }) {
   const [stepIndex, setStepIndex] = useState(0);
   const [currentHolder, setCurrentHolder] = useState(1);
   const [isBallVisible, setIsBallVisible] = useState(true);
-  const [statusMessage, setStatusMessage] = useState('');
-  const [voiceText, setVoiceText] = useState("Let's play together.");
+
+  // Structured message descriptors for instant translation reactivity
+  const [statusDescriptor, setStatusDescriptor] = useState({ key: '', params: {} });
+  const [voiceDescriptor, setVoiceDescriptor] = useState({ key: 'voiceWelcome', params: {} });
+
   const [userChoice, setUserChoice] = useState(null);
   const [isCorrect, setIsCorrect] = useState(false);
   const [roundStats, setRoundStats] = useState({ roundsCompleted: 0 });
@@ -450,6 +452,41 @@ export default function DhopkhelGame({ onExit }) {
       clearTimers();
     };
   }, [clearTimers]);
+
+  // Reactive localized levels
+  const levels = useMemo(() => {
+    const localized = {};
+    for (const [key, cfg] of Object.entries(LEVEL_CONFIGS)) {
+      localized[key] = {
+        ...cfg,
+        name: t(cfg.nameKey),
+        badge: t(cfg.badgeKey),
+        subtitle: t(cfg.subtitleKey),
+        description: t(cfg.descKey),
+      };
+    }
+    return localized;
+  }, [t, currentLanguage]);
+
+  // Reactive localized players
+  const players = useMemo(() => {
+    return PLAYER_CONFIGS.map((p) => ({
+      ...p,
+      name: t(p.nameKey, { id: p.id }),
+      label: t(p.labelKey, { id: p.id }),
+    }));
+  }, [t, currentLanguage]);
+
+  // Reactive status & voice strings computed from descriptors
+  const statusMessage = useMemo(() => {
+    if (!statusDescriptor.key) return '';
+    return t(`games.dhopkhel.${statusDescriptor.key}`, statusDescriptor.params);
+  }, [statusDescriptor, t, currentLanguage]);
+
+  const voiceText = useMemo(() => {
+    if (!voiceDescriptor.key) return '';
+    return t(`games.dhopkhel.${voiceDescriptor.key}`, voiceDescriptor.params);
+  }, [voiceDescriptor, t, currentLanguage]);
 
   // Accessibility multipliers
   const fontScale = textSize === 'extraLarge' ? 1.22 : 1.0;
@@ -486,39 +523,44 @@ export default function DhopkhelGame({ onExit }) {
     };
   }, [contrast, isDarkMode]);
 
-  // Speech helper (uses Web Speech API if in web browser, or visual caption)
+  // Speech helper with language-aware synthesis
   const speakText = useCallback(
-    (phrase) => {
-      setVoiceText(phrase);
+    (key, params = {}) => {
+      setVoiceDescriptor({ key, params });
       if (!audio) return;
+      const textToSpeak = t(`games.dhopkhel.${key}`, params);
       if (Platform.OS === 'web' && typeof window !== 'undefined' && 'speechSynthesis' in window) {
         try {
           window.speechSynthesis.cancel();
-          const utterance = new SpeechSynthesisUtterance(phrase);
+          const utterance = new SpeechSynthesisUtterance(textToSpeak);
           utterance.rate = 0.85; // Calm, slow pace
           utterance.pitch = 1.0;
+
+          // Language-aware speech synthesis code
+          const langMap = {
+            en: 'en-US',
+            as: 'as-IN',
+            bn: 'bn-IN',
+            hi: 'hi-IN',
+          };
+          utterance.lang = langMap[currentLanguage] || 'en-US';
           window.speechSynthesis.speak(utterance);
         } catch (e) {
           // Graceful fallback
         }
       }
     },
-    [audio]
+    [audio, currentLanguage, t]
   );
 
   // Generate a random valid passing sequence
-  // Easy: 2 passes (3 holders, e.g. 1 -> 2 -> 3)
-  // Medium: 4 passes (5 holders, e.g. 1 -> 3 -> 2 -> 1 -> 3)
-  // Hard: 6 passes (7 holders)
   const generateSequence = useCallback((levelKey) => {
-    const config = LEVELS[levelKey] || LEVELS.easy;
+    const config = LEVEL_CONFIGS[levelKey] || LEVEL_CONFIGS.easy;
     const numMoves = config.moves;
-    // Start with a random player (1, 2, or 3)
     let current = Math.floor(Math.random() * 3) + 1;
     const seq = [current];
 
     for (let i = 0; i < numMoves; i++) {
-      // Pick a different player to pass to
       const choices = [1, 2, 3].filter((p) => p !== current);
       const next = choices[Math.floor(Math.random() * choices.length)];
       seq.push(next);
@@ -528,9 +570,6 @@ export default function DhopkhelGame({ onExit }) {
   }, []);
 
   // Player positions on the gameplay stage (layout coordinates)
-  // Player 1: Top center
-  // Player 2: Bottom left
-  // Player 3: Bottom right
   const stagePositions = useMemo(() => {
     return {
       1: { x: 0, y: -95 },
@@ -555,34 +594,39 @@ export default function DhopkhelGame({ onExit }) {
       ballPosAnim.setValue(startCoord);
 
       setScreen(SCREENS.PLAYING);
-      setStatusMessage(`Observation: Dhop starts with Player ${seq[0]}.`);
-      speakText('Watch the ball carefully.');
+      const startPlayerObj = players.find((p) => p.id === seq[0]) || { name: `Player ${seq[0]}` };
+      setStatusDescriptor({ key: 'statusStart', params: { player: startPlayerObj.name } });
+      speakText('voiceWatchBall');
 
-      const config = LEVELS[levelKey];
-      const holdTime = config.holdDuration * animMultiplier;
-      const travelTime = config.travelDuration * animMultiplier;
+      const config = LEVEL_CONFIGS[levelKey];
+      const holdTime = Math.round(config.holdDuration * animMultiplier);
+      const travelTime = Math.round(config.travelDuration * animMultiplier);
 
-      // Schedule sequence transitions
       let accumulatedTime = holdTime;
 
       for (let move = 1; move < seq.length; move++) {
-        const fromPlayer = seq[move - 1];
-        const toPlayer = seq[move];
+        const fromPlayerId = seq[move - 1];
+        const toPlayerId = seq[move];
         const moveNum = move;
 
-        // Schedule pass start
         const passTimer = setTimeout(() => {
           setStepIndex(moveNum);
-          setStatusMessage(`Player ${fromPlayer} passes to Player ${toPlayer}.`);
-          speakText(`Player ${fromPlayer} to Player ${toPlayer}.`);
+          const fromObj = players.find((p) => p.id === fromPlayerId) || { name: `Player ${fromPlayerId}` };
+          const toObj = players.find((p) => p.id === toPlayerId) || { name: `Player ${toPlayerId}` };
 
-          const targetCoord = stagePositions[toPlayer];
+          setStatusDescriptor({
+            key: 'statusPass',
+            params: { from: fromObj.name, to: toObj.name },
+          });
+          speakText('voicePass', { from: fromObj.name, to: toObj.name });
+
+          const targetCoord = stagePositions[toPlayerId];
           Animated.timing(ballPosAnim, {
             toValue: targetCoord,
             duration: travelTime,
             useNativeDriver: false,
           }).start(() => {
-            setCurrentHolder(toPlayer);
+            setCurrentHolder(toPlayerId);
           });
         }, accumulatedTime);
 
@@ -592,22 +636,20 @@ export default function DhopkhelGame({ onExit }) {
 
       // After all passes complete, transition to memory pause & recall
       const endTimer = setTimeout(() => {
-        setStatusMessage('Remember who has the Dhop...');
-        speakText('Remember who has the Dhop.');
+        setStatusDescriptor({ key: 'statusRemember', params: {} });
+        speakText('voiceRemember');
 
-        // Gentle fade-out of the Dhop ball
         Animated.timing(ballOpacityAnim, {
           toValue: 0,
-          duration: 900 * animMultiplier,
+          duration: Math.round(900 * animMultiplier),
           useNativeDriver: false,
         }).start(() => {
           setIsBallVisible(false);
 
-          // Transition to Recall screen
           const recallTimer = setTimeout(() => {
             setScreen(SCREENS.RECALL);
-            speakText('Who has the Dhop?');
-          }, 700 * animMultiplier);
+            speakText('voiceWhoHasDhop');
+          }, Math.round(700 * animMultiplier));
           activeTimers.current.push(recallTimer);
         });
       }, accumulatedTime);
@@ -622,6 +664,7 @@ export default function DhopkhelGame({ onExit }) {
       ballPosAnim,
       ballOpacityAnim,
       animMultiplier,
+      players,
       speakText,
     ]
   );
@@ -636,9 +679,9 @@ export default function DhopkhelGame({ onExit }) {
 
       if (correct) {
         setRoundStats((prev) => ({ roundsCompleted: prev.roundsCompleted + 1 }));
-        speakText('Well done! Great memory!');
+        speakText('voiceWellDone');
       } else {
-        speakText("That's okay. Let's try again.");
+        speakText('voiceTryAgain');
       }
 
       setScreen(SCREENS.FEEDBACK);
@@ -658,7 +701,7 @@ export default function DhopkhelGame({ onExit }) {
       if (onExit) onExit();
     } else if (screen === SCREENS.DIFFICULTY) {
       setScreen(SCREENS.WELCOME);
-      speakText("Let's play together.");
+      speakText('voiceWelcome');
     } else if (screen === SCREENS.INSTRUCTIONS) {
       setScreen(SCREENS.DIFFICULTY);
     } else if (screen === SCREENS.PLAYING || screen === SCREENS.RECALL) {
@@ -687,19 +730,19 @@ export default function DhopkhelGame({ onExit }) {
       >
         <Ionicons name="sparkles" size={16} color={colors.accent} style={{ marginRight: 6 }} />
         <Text style={[styles.taglineText, { color: colors.subText, fontSize: 13 * fontScale }]}>
-          Watch · Remember · Find the Dhop
+          {t('games.dhopkhel.tagline')}
         </Text>
       </View>
 
       {/* Main Title */}
       <Text style={[styles.mainTitle, { color: colors.text, fontSize: 32 * fontScale }]}>
-        DHOPKHEL MEMORY
+        {t('games.dhopkhel.title')}
       </Text>
       <Text style={[styles.mainSubtitle, { color: colors.primary, fontSize: 19 * fontScale }]}>
-        A Gentle Memory Game
+        {t('games.dhopkhel.subtitle')}
       </Text>
       <Text style={[styles.culturalNotice, { color: colors.subText, fontSize: 14 * fontScale }]}>
-        Inspired by Dhopkhel, Assam
+        {t('games.dhopkhel.culturalNotice')}
       </Text>
 
       {/* Visual illustration of Dhop & 3 Players */}
@@ -713,19 +756,23 @@ export default function DhopkhelGame({ onExit }) {
         ]}
       >
         <View style={styles.welcomeDhopHero}>
-          <DhopBall size={64} contrast={contrast} />
+          <DhopBall
+            size={64}
+            contrast={contrast}
+            accessibilityLabel={t('games.dhopkhel.accessibilityDhopBall')}
+          />
           <Text
             style={[
               styles.dhopBallLabel,
               { color: colors.text, fontSize: 15 * fontScale, marginTop: 10 },
             ]}
           >
-            The Soft Dhop Ball
+            {t('games.dhopkhel.softDhopBall')}
           </Text>
         </View>
 
         <View style={styles.heroPlayersRow}>
-          {PLAYERS.map((p) => (
+          {players.map((p) => (
             <PlayerAvatar
               key={p.id}
               player={p}
@@ -738,7 +785,12 @@ export default function DhopkhelGame({ onExit }) {
       </View>
 
       {/* Spoken voice cue */}
-      <VoiceCaption text={voiceText} enabled={audio} contrast={contrast} />
+      <VoiceCaption
+        text={voiceText}
+        enabled={audio}
+        contrast={contrast}
+        accessibilityLabel={t('games.dhopkhel.accessibilityVoiceInstruction', { text: voiceText })}
+      />
 
       {/* Primary Action Button */}
       <TouchableOpacity
@@ -751,14 +803,14 @@ export default function DhopkhelGame({ onExit }) {
         ]}
         onPress={() => {
           setScreen(SCREENS.DIFFICULTY);
-          speakText('Choose your difficulty level.');
+          speakText('voiceChooseDifficulty');
         }}
         accessibilityRole="button"
-        accessibilityLabel="Play Dhopkhel Memory"
+        accessibilityLabel={t('games.dhopkhel.accessibilityPlay')}
       >
         <Ionicons name="play" size={26 * btnScale} color={colors.btnText} style={{ marginRight: 10 }} />
         <Text style={[styles.largePrimaryBtnText, { color: colors.btnText, fontSize: 22 * fontScale }]}>
-          PLAY
+          {t('games.dhopkhel.play')}
         </Text>
       </TouchableOpacity>
 
@@ -775,17 +827,17 @@ export default function DhopkhelGame({ onExit }) {
         ]}
         onPress={() => setScreen(SCREENS.SETTINGS)}
         accessibilityRole="button"
-        accessibilityLabel="Accessibility Settings and About"
+        accessibilityLabel={t('games.dhopkhel.accessibilitySettingsBtn')}
       >
         <Ionicons name="settings-outline" size={20} color={colors.text} style={{ marginRight: 8 }} />
         <Text style={[styles.secondaryBtnText, { color: colors.text, fontSize: 16 * fontScale }]}>
-          Accessibility & Settings
+          {t('games.dhopkhel.accessibilitySettings')}
         </Text>
       </TouchableOpacity>
 
       {/* Medical disclaimer note */}
       <Text style={[styles.disclaimerSmall, { color: colors.subText, fontSize: 12 * fontScale }]}>
-        Cognitive memory-support practice. Not a medical diagnostic tool or treatment.
+        {t('games.dhopkhel.shortDisclaimer')}
       </Text>
     </ScrollView>
   );
@@ -796,13 +848,13 @@ export default function DhopkhelGame({ onExit }) {
   const renderDifficulty = () => (
     <ScrollView contentContainerStyle={styles.scrollContent}>
       <Text style={[styles.sectionHeading, { color: colors.text, fontSize: 26 * fontScale }]}>
-        SELECT DIFFICULTY
+        {t('games.dhopkhel.selectDifficulty')}
       </Text>
       <Text style={[styles.sectionSubtitle, { color: colors.subText, fontSize: 16 * fontScale }]}>
-        Choose the pace that feels most comfortable:
+        {t('games.dhopkhel.selectDifficultySub')}
       </Text>
 
-      {Object.values(LEVELS).map((lvl) => {
+      {Object.values(levels).map((lvl) => {
         const isSelected = selectedLevel === lvl.id;
         return (
           <TouchableOpacity
@@ -896,13 +948,13 @@ export default function DhopkhelGame({ onExit }) {
         ]}
         onPress={() => {
           setScreen(SCREENS.INSTRUCTIONS);
-          speakText('Watch the ball carefully. Remember who has the Dhop.');
+          speakText('voiceInstructions');
         }}
         accessibilityRole="button"
-        accessibilityLabel="Continue to instructions"
+        accessibilityLabel={t('games.dhopkhel.accessibilityContinue')}
       >
         <Text style={[styles.largePrimaryBtnText, { color: colors.btnText, fontSize: 20 * fontScale }]}>
-          CONTINUE
+          {t('games.dhopkhel.continue')}
         </Text>
         <Ionicons name="arrow-forward" size={24} color={colors.btnText} style={{ marginLeft: 8 }} />
       </TouchableOpacity>
@@ -913,11 +965,11 @@ export default function DhopkhelGame({ onExit }) {
      Screen 3: INSTRUCTIONS
   ----------------------------------------------------------- */
   const renderInstructions = () => {
-    const activeLevelObj = LEVELS[selectedLevel];
+    const activeLevelObj = levels[selectedLevel] || levels.easy;
     return (
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Text style={[styles.sectionHeading, { color: colors.text, fontSize: 26 * fontScale }]}>
-          HOW TO PLAY
+          {t('games.dhopkhel.howToPlay')}
         </Text>
         <Text style={[styles.sectionSubtitle, { color: colors.primary, fontSize: 17 * fontScale }]}>
           {activeLevelObj.name} · {activeLevelObj.subtitle}
@@ -939,10 +991,10 @@ export default function DhopkhelGame({ onExit }) {
             </View>
             <View style={styles.stepTextContainer}>
               <Text style={[styles.stepTitle, { color: colors.text, fontSize: 18 * fontScale }]}>
-                WATCH THE DHOP.
+                {t('games.dhopkhel.step1Title')}
               </Text>
               <Text style={[styles.stepDesc, { color: colors.subText, fontSize: 14 * fontScale }]}>
-                The red cloth ball will slowly move between the three players.
+                {t('games.dhopkhel.step1Desc')}
               </Text>
             </View>
           </View>
@@ -954,10 +1006,10 @@ export default function DhopkhelGame({ onExit }) {
             </View>
             <View style={styles.stepTextContainer}>
               <Text style={[styles.stepTitle, { color: colors.text, fontSize: 18 * fontScale }]}>
-                REMEMBER WHO HAS IT.
+                {t('games.dhopkhel.step2Title')}
               </Text>
               <Text style={[styles.stepDesc, { color: colors.subText, fontSize: 14 * fontScale }]}>
-                Notice which player holds the Dhop when the passes finish.
+                {t('games.dhopkhel.step2Desc')}
               </Text>
             </View>
           </View>
@@ -969,17 +1021,22 @@ export default function DhopkhelGame({ onExit }) {
             </View>
             <View style={styles.stepTextContainer}>
               <Text style={[styles.stepTitle, { color: colors.text, fontSize: 18 * fontScale }]}>
-                TAP THE PLAYER.
+                {t('games.dhopkhel.step3Title')}
               </Text>
               <Text style={[styles.stepDesc, { color: colors.subText, fontSize: 14 * fontScale }]}>
-                The Dhop will hide. Choose Player 1, Player 2, or Player 3.
+                {t('games.dhopkhel.step3Desc')}
               </Text>
             </View>
           </View>
         </View>
 
         {/* Voice caption */}
-        <VoiceCaption text="Watch the ball carefully. Remember who has the Dhop." enabled={audio} contrast={contrast} />
+        <VoiceCaption
+          text={voiceText}
+          enabled={audio}
+          contrast={contrast}
+          accessibilityLabel={t('games.dhopkhel.accessibilityVoiceInstruction', { text: voiceText })}
+        />
 
         <TouchableOpacity
           style={[
@@ -992,11 +1049,11 @@ export default function DhopkhelGame({ onExit }) {
           ]}
           onPress={() => handleStartRound(selectedLevel)}
           accessibilityRole="button"
-          accessibilityLabel="Start the game now"
+          accessibilityLabel={t('games.dhopkhel.accessibilityStart')}
         >
           <Ionicons name="play" size={24} color={colors.btnText} style={{ marginRight: 8 }} />
           <Text style={[styles.largePrimaryBtnText, { color: colors.btnText, fontSize: 22 * fontScale }]}>
-            START
+            {t('games.dhopkhel.start')}
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -1007,6 +1064,7 @@ export default function DhopkhelGame({ onExit }) {
      Screen 4: PLAYING (Observation Stage)
   ----------------------------------------------------------- */
   const renderPlaying = () => {
+    const activeLevelObj = levels[selectedLevel] || levels.easy;
     return (
       <View style={styles.playingContainer}>
         {/* Landscape scenery */}
@@ -1026,7 +1084,7 @@ export default function DhopkhelGame({ onExit }) {
             {statusMessage}
           </Text>
           <Text style={[styles.statusSub, { color: colors.subText, fontSize: 13 * fontScale }]}>
-            Move {stepIndex} of {LEVELS[selectedLevel].moves}
+            {t('games.dhopkhel.moveCounter', { current: stepIndex, total: activeLevelObj.moves })}
           </Text>
         </View>
 
@@ -1035,7 +1093,7 @@ export default function DhopkhelGame({ onExit }) {
           {/* Player 1 (Top Center) */}
           <View style={styles.playerPosTop}>
             <PlayerAvatar
-              player={PLAYERS[0]}
+              player={players[0]}
               hasDhop={currentHolder === 1 && isBallVisible}
               contrast={contrast}
               isDarkMode={isDarkMode}
@@ -1046,14 +1104,14 @@ export default function DhopkhelGame({ onExit }) {
           {/* Player 2 (Bottom Left) & Player 3 (Bottom Right) */}
           <View style={styles.playerPosBottomRow}>
             <PlayerAvatar
-              player={PLAYERS[1]}
+              player={players[1]}
               hasDhop={currentHolder === 2 && isBallVisible}
               contrast={contrast}
               isDarkMode={isDarkMode}
               scale={0.92}
             />
             <PlayerAvatar
-              player={PLAYERS[2]}
+              player={players[2]}
               hasDhop={currentHolder === 3 && isBallVisible}
               contrast={contrast}
               isDarkMode={isDarkMode}
@@ -1076,14 +1134,23 @@ export default function DhopkhelGame({ onExit }) {
               ]}
               pointerEvents="none"
             >
-              <DhopBall size={50} contrast={contrast} />
+              <DhopBall
+                size={50}
+                contrast={contrast}
+                accessibilityLabel={t('games.dhopkhel.accessibilityDhopBall')}
+              />
             </Animated.View>
           )}
         </View>
 
         {/* Voice caption at bottom */}
         <View style={{ paddingHorizontal: 16, paddingBottom: 20 }}>
-          <VoiceCaption text={voiceText} enabled={audio} contrast={contrast} />
+          <VoiceCaption
+            text={voiceText}
+            enabled={audio}
+            contrast={contrast}
+            accessibilityLabel={t('games.dhopkhel.accessibilityVoiceInstruction', { text: voiceText })}
+          />
         </View>
       </View>
     );
@@ -1105,22 +1172,31 @@ export default function DhopkhelGame({ onExit }) {
         ]}
       >
         <View style={styles.recallDhopIcon}>
-          <DhopBall size={54} contrast={contrast} />
+          <DhopBall
+            size={54}
+            contrast={contrast}
+            accessibilityLabel={t('games.dhopkhel.accessibilityDhopBall')}
+          />
         </View>
         <Text style={[styles.recallTitle, { color: colors.text, fontSize: 26 * fontScale }]}>
-          WHO HAS THE DHOP?
+          {t('games.dhopkhel.recallTitle')}
         </Text>
         <Text style={[styles.recallSubtitle, { color: colors.subText, fontSize: 16 * fontScale }]}>
-          Tap the player who was holding the ball:
+          {t('games.dhopkhel.recallSubtitle')}
         </Text>
       </View>
 
       {/* Voice caption */}
-      <VoiceCaption text="Who has the Dhop?" enabled={audio} contrast={contrast} />
+      <VoiceCaption
+        text={voiceText}
+        enabled={audio}
+        contrast={contrast}
+        accessibilityLabel={t('games.dhopkhel.accessibilityVoiceInstruction', { text: voiceText })}
+      />
 
       {/* Three large answer buttons */}
       <View style={styles.answersContainer}>
-        {PLAYERS.map((p) => (
+        {players.map((p) => (
           <TouchableOpacity
             key={p.id}
             style={[
@@ -1134,7 +1210,7 @@ export default function DhopkhelGame({ onExit }) {
             ]}
             onPress={() => handleAnswer(p.id)}
             accessibilityRole="button"
-            accessibilityLabel={`Choose ${p.name}`}
+            accessibilityLabel={t('games.dhopkhel.accessibilityChoosePlayer', { player: p.name })}
           >
             <View
               style={[
@@ -1150,7 +1226,7 @@ export default function DhopkhelGame({ onExit }) {
                 {p.name}
               </Text>
               <Text style={[styles.answerBtnSub, { color: colors.subText, fontSize: 14 * fontScale }]}>
-                Player {p.id}
+                {p.label}
               </Text>
             </View>
 
@@ -1166,7 +1242,7 @@ export default function DhopkhelGame({ onExit }) {
   ----------------------------------------------------------- */
   const renderFeedback = () => {
     const finalHolder = moveSequence[moveSequence.length - 1];
-    const correctPlayer = PLAYERS.find((p) => p.id === finalHolder);
+    const correctPlayer = players.find((p) => p.id === finalHolder) || { name: `Player ${finalHolder}` };
 
     return (
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -1212,30 +1288,35 @@ export default function DhopkhelGame({ onExit }) {
               },
             ]}
           >
-            {isCorrect ? 'WELL DONE!' : "That's okay."}
+            {isCorrect ? t('games.dhopkhel.feedbackCorrectTitle') : t('games.dhopkhel.feedbackIncorrectTitle')}
           </Text>
 
           {/* Subtitle */}
           <Text style={[styles.feedbackSub, { color: colors.text, fontSize: 18 * fontScale }]}>
             {isCorrect
-              ? 'Great memory! You tracked the Dhop perfectly.'
-              : `Let's try again! ${correctPlayer?.name} was holding the Dhop.`}
+              ? t('games.dhopkhel.feedbackCorrectSub')
+              : t('games.dhopkhel.feedbackIncorrectSub', { player: correctPlayer?.name })}
           </Text>
 
           {/* Visual confirmation showing who held the Dhop */}
           <View style={styles.revealedPlayerContainer}>
-            <DhopBall size={42} contrast={contrast} />
+            <DhopBall
+              size={42}
+              contrast={contrast}
+              accessibilityLabel={t('games.dhopkhel.accessibilityDhopBall')}
+            />
             <Text style={[styles.revealedPlayerText, { color: colors.text, fontSize: 16 * fontScale }]}>
-              Dhop is with {correctPlayer?.name}
+              {t('games.dhopkhel.revealedPlayer', { player: correctPlayer?.name })}
             </Text>
           </View>
         </View>
 
         {/* Voice caption */}
         <VoiceCaption
-          text={isCorrect ? 'Well done! Great memory!' : "That's okay. Let's try again."}
+          text={voiceText}
           enabled={audio}
           contrast={contrast}
+          accessibilityLabel={t('games.dhopkhel.accessibilityVoiceInstruction', { text: voiceText })}
         />
 
         {/* Action Buttons */}
@@ -1250,7 +1331,11 @@ export default function DhopkhelGame({ onExit }) {
           ]}
           onPress={handleTryAgain}
           accessibilityRole="button"
-          accessibilityLabel={isCorrect ? 'Play next round' : 'Try again'}
+          accessibilityLabel={
+            isCorrect
+              ? t('games.dhopkhel.accessibilityNextRound')
+              : t('games.dhopkhel.accessibilityTryAgain')
+          }
         >
           <Ionicons
             name={isCorrect ? 'arrow-forward' : 'refresh'}
@@ -1259,7 +1344,7 @@ export default function DhopkhelGame({ onExit }) {
             style={{ marginRight: 8 }}
           />
           <Text style={[styles.largePrimaryBtnText, { color: colors.btnText, fontSize: 22 * fontScale }]}>
-            {isCorrect ? 'NEXT ROUND' : 'TRY AGAIN'}
+            {isCorrect ? t('games.dhopkhel.nextRound') : t('games.dhopkhel.tryAgain')}
           </Text>
         </TouchableOpacity>
 
@@ -1277,11 +1362,11 @@ export default function DhopkhelGame({ onExit }) {
             setScreen(SCREENS.DIFFICULTY);
           }}
           accessibilityRole="button"
-          accessibilityLabel="Change difficulty level"
+          accessibilityLabel={t('games.dhopkhel.accessibilityChangeLevel')}
         >
           <Ionicons name="options-outline" size={20} color={colors.text} style={{ marginRight: 8 }} />
           <Text style={[styles.secondaryBtnText, { color: colors.text, fontSize: 16 * fontScale }]}>
-            Change Level
+            {t('games.dhopkhel.changeLevel')}
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -1294,16 +1379,16 @@ export default function DhopkhelGame({ onExit }) {
   const renderSettings = () => (
     <ScrollView contentContainerStyle={styles.scrollContent}>
       <Text style={[styles.sectionHeading, { color: colors.text, fontSize: 26 * fontScale }]}>
-        ACCESSIBILITY & SETTINGS
+        {t('games.dhopkhel.settingsTitle')}
       </Text>
       <Text style={[styles.sectionSubtitle, { color: colors.subText, fontSize: 15 * fontScale }]}>
-        Customize the experience for comfort:
+        {t('games.dhopkhel.settingsSub')}
       </Text>
 
       {/* Text Size Setting */}
       <View style={[styles.settingsGroupCard, { backgroundColor: colors.cardBg, borderColor: colors.cardBorder }]}>
         <Text style={[styles.settingsGroupTitle, { color: colors.text, fontSize: 17 * fontScale }]}>
-          TEXT SIZE
+          {t('games.dhopkhel.textSize')}
         </Text>
         <View style={styles.settingsToggleRow}>
           <TouchableOpacity
@@ -1313,7 +1398,7 @@ export default function DhopkhelGame({ onExit }) {
             ]}
             onPress={() => setTextSize('large')}
             accessibilityRole="button"
-            accessibilityLabel="Set text size to Large"
+            accessibilityLabel={t('games.dhopkhel.accessibilitySetTextLarge')}
           >
             <Text
               style={[
@@ -1321,7 +1406,7 @@ export default function DhopkhelGame({ onExit }) {
                 { color: textSize === 'large' ? colors.btnText : colors.text },
               ]}
             >
-              Large
+              {t('games.dhopkhel.sizeLarge')}
             </Text>
           </TouchableOpacity>
 
@@ -1332,7 +1417,7 @@ export default function DhopkhelGame({ onExit }) {
             ]}
             onPress={() => setTextSize('extraLarge')}
             accessibilityRole="button"
-            accessibilityLabel="Set text size to Extra Large"
+            accessibilityLabel={t('games.dhopkhel.accessibilitySetTextExtraLarge')}
           >
             <Text
               style={[
@@ -1340,7 +1425,7 @@ export default function DhopkhelGame({ onExit }) {
                 { color: textSize === 'extraLarge' ? colors.btnText : colors.text },
               ]}
             >
-              Extra Large
+              {t('games.dhopkhel.sizeExtraLarge')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -1349,7 +1434,7 @@ export default function DhopkhelGame({ onExit }) {
       {/* Button Size Setting */}
       <View style={[styles.settingsGroupCard, { backgroundColor: colors.cardBg, borderColor: colors.cardBorder }]}>
         <Text style={[styles.settingsGroupTitle, { color: colors.text, fontSize: 17 * fontScale }]}>
-          BUTTON SIZE
+          {t('games.dhopkhel.buttonSize')}
         </Text>
         <View style={styles.settingsToggleRow}>
           <TouchableOpacity
@@ -1359,7 +1444,7 @@ export default function DhopkhelGame({ onExit }) {
             ]}
             onPress={() => setButtonSize('large')}
             accessibilityRole="button"
-            accessibilityLabel="Set button size to Large"
+            accessibilityLabel={t('games.dhopkhel.accessibilitySetButtonLarge')}
           >
             <Text
               style={[
@@ -1367,7 +1452,7 @@ export default function DhopkhelGame({ onExit }) {
                 { color: buttonSize === 'large' ? colors.btnText : colors.text },
               ]}
             >
-              Large
+              {t('games.dhopkhel.sizeLarge')}
             </Text>
           </TouchableOpacity>
 
@@ -1378,7 +1463,7 @@ export default function DhopkhelGame({ onExit }) {
             ]}
             onPress={() => setButtonSize('extraLarge')}
             accessibilityRole="button"
-            accessibilityLabel="Set button size to Extra Large"
+            accessibilityLabel={t('games.dhopkhel.accessibilitySetButtonExtraLarge')}
           >
             <Text
               style={[
@@ -1386,7 +1471,7 @@ export default function DhopkhelGame({ onExit }) {
                 { color: buttonSize === 'extraLarge' ? colors.btnText : colors.text },
               ]}
             >
-              Extra Large
+              {t('games.dhopkhel.sizeExtraLarge')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -1395,7 +1480,7 @@ export default function DhopkhelGame({ onExit }) {
       {/* Animation Speed Setting */}
       <View style={[styles.settingsGroupCard, { backgroundColor: colors.cardBg, borderColor: colors.cardBorder }]}>
         <Text style={[styles.settingsGroupTitle, { color: colors.text, fontSize: 17 * fontScale }]}>
-          ANIMATION SPEED
+          {t('games.dhopkhel.animationSpeed')}
         </Text>
         <View style={styles.settingsToggleRow}>
           <TouchableOpacity
@@ -1405,7 +1490,7 @@ export default function DhopkhelGame({ onExit }) {
             ]}
             onPress={() => setAnimationSpeed('slow')}
             accessibilityRole="button"
-            accessibilityLabel="Set animation speed to Slow and gentle"
+            accessibilityLabel={t('games.dhopkhel.accessibilitySetSpeedSlow')}
           >
             <Text
               style={[
@@ -1413,7 +1498,7 @@ export default function DhopkhelGame({ onExit }) {
                 { color: animationSpeed === 'slow' ? colors.btnText : colors.text },
               ]}
             >
-              Slow (Gentle)
+              {t('games.dhopkhel.speedSlow')}
             </Text>
           </TouchableOpacity>
 
@@ -1424,7 +1509,7 @@ export default function DhopkhelGame({ onExit }) {
             ]}
             onPress={() => setAnimationSpeed('normal')}
             accessibilityRole="button"
-            accessibilityLabel="Set animation speed to Normal"
+            accessibilityLabel={t('games.dhopkhel.accessibilitySetSpeedNormal')}
           >
             <Text
               style={[
@@ -1432,7 +1517,7 @@ export default function DhopkhelGame({ onExit }) {
                 { color: animationSpeed === 'normal' ? colors.btnText : colors.text },
               ]}
             >
-              Normal
+              {t('games.dhopkhel.speedNormal')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -1441,7 +1526,7 @@ export default function DhopkhelGame({ onExit }) {
       {/* Audio Voice Setting */}
       <View style={[styles.settingsGroupCard, { backgroundColor: colors.cardBg, borderColor: colors.cardBorder }]}>
         <Text style={[styles.settingsGroupTitle, { color: colors.text, fontSize: 17 * fontScale }]}>
-          AUDIO & VOICE GUIDANCE
+          {t('games.dhopkhel.audioGuidance')}
         </Text>
         <View style={styles.settingsToggleRow}>
           <TouchableOpacity
@@ -1451,7 +1536,7 @@ export default function DhopkhelGame({ onExit }) {
             ]}
             onPress={() => setAudio(true)}
             accessibilityRole="button"
-            accessibilityLabel="Turn Audio On"
+            accessibilityLabel={t('games.dhopkhel.accessibilitySetAudioOn')}
           >
             <Text
               style={[
@@ -1459,7 +1544,7 @@ export default function DhopkhelGame({ onExit }) {
                 { color: audio === true ? colors.btnText : colors.text },
               ]}
             >
-              On (Spoken)
+              {t('games.dhopkhel.audioOn')}
             </Text>
           </TouchableOpacity>
 
@@ -1470,7 +1555,7 @@ export default function DhopkhelGame({ onExit }) {
             ]}
             onPress={() => setAudio(false)}
             accessibilityRole="button"
-            accessibilityLabel="Turn Audio Off"
+            accessibilityLabel={t('games.dhopkhel.accessibilitySetAudioOff')}
           >
             <Text
               style={[
@@ -1478,7 +1563,7 @@ export default function DhopkhelGame({ onExit }) {
                 { color: audio === false ? colors.btnText : colors.text },
               ]}
             >
-              Off (Muted)
+              {t('games.dhopkhel.audioOff')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -1487,7 +1572,7 @@ export default function DhopkhelGame({ onExit }) {
       {/* Contrast Setting */}
       <View style={[styles.settingsGroupCard, { backgroundColor: colors.cardBg, borderColor: colors.cardBorder }]}>
         <Text style={[styles.settingsGroupTitle, { color: colors.text, fontSize: 17 * fontScale }]}>
-          CONTRAST
+          {t('games.dhopkhel.contrast')}
         </Text>
         <View style={styles.settingsToggleRow}>
           <TouchableOpacity
@@ -1497,7 +1582,7 @@ export default function DhopkhelGame({ onExit }) {
             ]}
             onPress={() => setContrast('normal')}
             accessibilityRole="button"
-            accessibilityLabel="Set standard contrast"
+            accessibilityLabel={t('games.dhopkhel.accessibilitySetContrastStandard')}
           >
             <Text
               style={[
@@ -1505,7 +1590,7 @@ export default function DhopkhelGame({ onExit }) {
                 { color: contrast === 'normal' ? colors.btnText : colors.text },
               ]}
             >
-              Standard
+              {t('games.dhopkhel.contrastStandard')}
             </Text>
           </TouchableOpacity>
 
@@ -1516,7 +1601,7 @@ export default function DhopkhelGame({ onExit }) {
             ]}
             onPress={() => setContrast('high')}
             accessibilityRole="button"
-            accessibilityLabel="Set high contrast"
+            accessibilityLabel={t('games.dhopkhel.accessibilitySetContrastHigh')}
           >
             <Text
               style={[
@@ -1524,7 +1609,7 @@ export default function DhopkhelGame({ onExit }) {
                 { color: contrast === 'high' ? colors.btnText : colors.text },
               ]}
             >
-              High Contrast
+              {t('games.dhopkhel.contrastHigh')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -1541,10 +1626,10 @@ export default function DhopkhelGame({ onExit }) {
         ]}
       >
         <Text style={[styles.infoCardTitle, { color: colors.primary, fontSize: 16 * fontScale }]}>
-          About Dhopkhel, Assam
+          {t('games.dhopkhel.aboutTitle')}
         </Text>
         <Text style={[styles.infoCardText, { color: colors.text, fontSize: 14 * fontScale }]}>
-          Dhopkhel is a cherished traditional ball game from Assam, traditionally played with a soft woven ball called a 'Dhop'. This digital adaptation preserves the calm visual tracking and attention element for cognitive engagement and memory wellness.
+          {t('games.dhopkhel.aboutText')}
         </Text>
       </View>
 
@@ -1560,10 +1645,10 @@ export default function DhopkhelGame({ onExit }) {
       >
         <Ionicons name="information-circle" size={24} color={colors.accent} style={{ marginBottom: 6 }} />
         <Text style={[styles.disclaimerCardTitle, { color: colors.accent, fontSize: 15 * fontScale }]}>
-          Medical Disclaimer
+          {t('games.dhopkhel.medicalDisclaimerTitle')}
         </Text>
         <Text style={[styles.disclaimerCardText, { color: colors.text, fontSize: 13 * fontScale }]}>
-          "This game is designed for cognitive engagement and memory practice. It is not a medical diagnostic tool or treatment for dementia."
+          {t('games.dhopkhel.medicalDisclaimerText')}
         </Text>
       </View>
 
@@ -1579,11 +1664,11 @@ export default function DhopkhelGame({ onExit }) {
         ]}
         onPress={() => setScreen(SCREENS.WELCOME)}
         accessibilityRole="button"
-        accessibilityLabel="Save and return to welcome screen"
+        accessibilityLabel={t('games.dhopkhel.accessibilitySaveReturn')}
       >
         <Ionicons name="checkmark" size={24} color={colors.btnText} style={{ marginRight: 8 }} />
         <Text style={[styles.largePrimaryBtnText, { color: colors.btnText, fontSize: 20 * fontScale }]}>
-          SAVE & RETURN
+          {t('games.dhopkhel.saveAndReturn')}
         </Text>
       </TouchableOpacity>
     </ScrollView>
@@ -1605,12 +1690,12 @@ export default function DhopkhelGame({ onExit }) {
           style={styles.backTouchTarget}
           onPress={handleHeaderBack}
           accessibilityRole="button"
-          accessibilityLabel="Go back"
+          accessibilityLabel={t('games.dhopkhel.accessibilityGoBack')}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         >
           <Ionicons name="arrow-back" size={26} color={colors.primary} />
           <Text style={[styles.backButtonLabel, { color: colors.primary, fontSize: 16 * fontScale }]}>
-            {screen === SCREENS.WELCOME ? 'Back to Games' : 'Back'}
+            {screen === SCREENS.WELCOME ? t('games.dhopkhel.backToGames') : t('common.back')}
           </Text>
         </TouchableOpacity>
 
@@ -1622,7 +1707,11 @@ export default function DhopkhelGame({ onExit }) {
           ]}
           onPress={() => setAudio((prev) => !prev)}
           accessibilityRole="button"
-          accessibilityLabel={audio ? 'Mute audio' : 'Unmute audio'}
+          accessibilityLabel={
+            audio
+              ? t('games.dhopkhel.accessibilityMuteAudio')
+              : t('games.dhopkhel.accessibilityUnmuteAudio')
+          }
         >
           <Ionicons
             name={audio ? 'volume-high-outline' : 'volume-mute'}
@@ -2230,4 +2319,3 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
 });
-

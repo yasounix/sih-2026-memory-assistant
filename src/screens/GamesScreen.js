@@ -37,8 +37,8 @@ export default function GamesScreen() {
               <Ionicons name="sparkles" size={24} color="#15803D" />
             </View>
             <View style={styles.cardTextContainer}>
-              <Text style={[styles.menuCardTitle, { color: theme.text }]}>Dhopkhel Memory</Text>
-              <Text style={[styles.menuCardSub, { color: theme.subText }]}>Watch · Remember · Find the Dhop</Text>
+              <Text style={[styles.menuCardTitle, { color: theme.text }]}>{t('games.dhopkhel.title')}</Text>
+              <Text style={[styles.menuCardSub, { color: theme.subText }]}>{t('games.dhopkhel.tagline')}</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={theme.subText} />
           </TouchableOpacity>
