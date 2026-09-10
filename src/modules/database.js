@@ -125,3 +125,50 @@ export const updateReminder = async (id, updates) => {
   if (error) console.error('Error updating reminder:', error);
   return data;
 };
+
+export const getNextMemoryScene = async (patientId) => {
+  // Get scenes the patient has NOT seen
+  const { data: seen } = await supabase
+    .from('player_scene_history')
+    .select('scene_id')
+    .eq('patient_id', patientId);
+  
+  const seenIds = seen?.map(s => s.scene_id) || [];
+  
+  let query = supabase
+    .from('memory_scenes')
+    .select('*')
+    .eq('active', true);
+  
+  if (seenIds.length > 0) {
+    query = query.not('scene_id', 'in', `(${seenIds.join(',')})`);
+  }
+  
+  const { data, error } = await query.limit(1).single();
+  if (error) return null;
+  return data;
+};
+
+export const getSceneQuestions = async (sceneId) => {
+  const { data, error } = await supabase
+    .from('memory_questions')
+    .select('*')
+    .eq('scene_id', sceneId)
+    .eq('active', true);
+  if (error) return [];
+  return data || [];
+};
+
+export const recordSceneView = async (patientId, sceneId) => {
+  const { error } = await supabase
+    .from('player_scene_history')
+    .insert([{ patient_id: patientId, scene_id: sceneId }]);
+  if (error) console.error(error);
+};
+
+export const recordPerformance = async (data) => {
+  const { error } = await supabase
+    .from('game_performance')
+    .insert([data]);
+  if (error) console.error(error);
+};
