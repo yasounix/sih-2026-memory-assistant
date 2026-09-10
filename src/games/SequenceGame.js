@@ -7,6 +7,7 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 
 const COLORS = [
   {
@@ -52,6 +53,18 @@ export default function SequenceGame({
   onComplete,
 }) {
   const { theme, isDarkMode } = useTheme();
+  const { t } = useLanguage();
+
+  const getColorLabel = (id) => {
+    return t(`games.sequenceGame.${id}`) || id;
+  };
+
+  const getDifficultyDesc = (diff) => {
+    if (diff === 'Easy') return t('games.sequenceGame.easyDesc') || DIFFICULTY_SETTINGS.Easy.description;
+    if (diff === 'Medium') return t('games.sequenceGame.mediumDesc') || DIFFICULTY_SETTINGS.Medium.description;
+    return t('games.sequenceGame.hardDesc') || DIFFICULTY_SETTINGS.Hard.description;
+  };
+
   const [difficulty, setDifficulty] = useState(initialDifficulty);
   const [gameState, setGameState] = useState('idle'); // 'idle' | 'showing' | 'playing' | 'gameover'
   const [sequence, setSequence] = useState([]);
@@ -60,7 +73,7 @@ export default function SequenceGame({
   const [round, setRound] = useState(1);
   const [activeCircle, setActiveCircle] = useState(null);
   const [userTappedCircle, setUserTappedCircle] = useState(null);
-  const [statusMessage, setStatusMessage] = useState('Press "Start Game" to begin!');
+  const [statusMessage, setStatusMessage] = useState(t('games.sequenceGame.pressStart') || 'Press "Start Game" to begin!');
   const [duration, setDuration] = useState(0);
   const [startTime, setStartTime] = useState(null);
 
@@ -97,7 +110,7 @@ export default function SequenceGame({
     setGameState('showing');
     setActiveCircle(null);
     setUserTappedCircle(null);
-    setStatusMessage('Watch the sequence...');
+    setStatusMessage(t('games.sequenceGame.watchPattern') || 'Watch the sequence...');
 
     const settings = DIFFICULTY_SETTINGS[difficulty] || DIFFICULTY_SETTINGS.Easy;
     const { flashDuration, pauseDuration } = settings;
@@ -119,7 +132,7 @@ export default function SequenceGame({
           const readyTimeout = setTimeout(() => {
             setGameState('playing');
             setUserStep(0);
-            setStatusMessage('Your turn! Tap the circles in order.');
+            setStatusMessage(t('games.sequenceGame.yourTurn') || 'Your turn! Tap the circles in order.');
           }, pauseDuration);
           timeoutsRef.current.push(readyTimeout);
         }
@@ -155,7 +168,7 @@ export default function SequenceGame({
 
     const finalDuration = startTime ? Math.max(1, Math.floor((Date.now() - startTime) / 1000)) : duration;
     setDuration(finalDuration);
-    setStatusMessage('Game Over! Good try!');
+    setStatusMessage(t('games.sequenceGame.gameOver', { score: finalScore }) || 'Game Over! Good try!');
 
     const result = {
       score: finalScore,
@@ -191,7 +204,7 @@ export default function SequenceGame({
         setScore(nextScore);
         setRound(nextRound);
         setGameState('showing');
-        setStatusMessage('Great job! Get ready for the next color...');
+        setStatusMessage(t('games.sequenceGame.roundSuccess', { round: nextRound }) || 'Great job! Get ready...');
 
         // Add a new random color to sequence from active colors
         const activeColors = COLORS.slice(0, (DIFFICULTY_SETTINGS[difficulty] || DIFFICULTY_SETTINGS.Easy).circleCount);
@@ -216,28 +229,32 @@ export default function SequenceGame({
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Title */}
-      <Text style={[styles.title, { color: theme.text }]}>Sequence Recall</Text>
+      <Text style={[styles.title, { color: theme.text }]}>
+        {t('games.sequenceGame.title') || 'Sequence Recall'}
+      </Text>
 
       {/* Stats Header: Round, Score, Time */}
       <View style={styles.statsContainer}>
         <View style={[styles.statCard, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder, borderWidth: 1 }]}>
-          <Text style={[styles.statLabel, { color: theme.subText }]}>ROUND</Text>
+          <Text style={[styles.statLabel, { color: theme.subText }]}>{t('common.round') || 'ROUND'}</Text>
           <Text style={[styles.statValue, { color: theme.text }]}>{gameState === 'idle' ? '-' : round}</Text>
         </View>
         <View style={[styles.statCard, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder, borderWidth: 1 }]}>
-          <Text style={[styles.statLabel, { color: theme.subText }]}>SCORE</Text>
+          <Text style={[styles.statLabel, { color: theme.subText }]}>{t('common.score') || 'SCORE'}</Text>
           <Text style={[styles.statValue, { color: theme.text }]}>{score}</Text>
         </View>
         <View style={[styles.statCard, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder, borderWidth: 1 }]}>
-          <Text style={[styles.statLabel, { color: theme.subText }]}>TIME</Text>
-          <Text style={[styles.statValue, { color: theme.text }]}>{duration}s</Text>
+          <Text style={[styles.statLabel, { color: theme.subText }]}>{t('common.time') || 'TIME'}</Text>
+          <Text style={[styles.statValue, { color: theme.text }]}>{duration}{t('common.seconds') || 's'}</Text>
         </View>
       </View>
 
       {/* Difficulty Selector (available before starting) */}
       {gameState === 'idle' && (
         <View style={styles.difficultyContainer}>
-          <Text style={[styles.difficultyHeading, { color: theme.subText }]}>Select Difficulty:</Text>
+          <Text style={[styles.difficultyHeading, { color: theme.subText }]}>
+            {t('games.sequenceGame.selectDifficulty') || 'Select Difficulty:'}
+          </Text>
           <View style={styles.difficultyButtons}>
             {['Easy', 'Medium', 'Hard'].map((diff) => (
               <TouchableOpacity
@@ -262,7 +279,7 @@ export default function SequenceGame({
             ))}
           </View>
           <Text style={[styles.difficultySubtitle, { color: theme.primary }]}>
-            {DIFFICULTY_SETTINGS[difficulty]?.description}
+            {getDifficultyDesc(difficulty)}
           </Text>
         </View>
       )}
@@ -305,17 +322,17 @@ export default function SequenceGame({
       {/* Game Over Summary */}
       {gameState === 'gameover' && (
         <View style={[styles.gameOverCard, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder }]}>
-          <Text style={styles.gameOverTitle}>Game Over</Text>
+          <Text style={styles.gameOverTitle}>{t('games.sequenceGame.gameOver', { score }) || 'Game Over'}</Text>
           <View style={styles.resultRow}>
-            <Text style={[styles.resultLabel, { color: theme.subText }]}>Final Score:</Text>
-            <Text style={[styles.resultValue, { color: theme.text }]}>{score} correct rounds</Text>
+            <Text style={[styles.resultLabel, { color: theme.subText }]}>{t('common.score')}:</Text>
+            <Text style={[styles.resultValue, { color: theme.text }]}>{score}</Text>
           </View>
           <View style={styles.resultRow}>
-            <Text style={[styles.resultLabel, { color: theme.subText }]}>Duration:</Text>
-            <Text style={[styles.resultValue, { color: theme.text }]}>{duration} seconds</Text>
+            <Text style={[styles.resultLabel, { color: theme.subText }]}>{t('common.time')}:</Text>
+            <Text style={[styles.resultValue, { color: theme.text }]}>{duration}{t('common.seconds') || 's'}</Text>
           </View>
           <View style={styles.resultRow}>
-            <Text style={[styles.resultLabel, { color: theme.subText }]}>Difficulty:</Text>
+            <Text style={[styles.resultLabel, { color: theme.subText }]}>{t('common.level')}:</Text>
             <Text style={[styles.resultValue, { color: theme.text }]}>{difficulty}</Text>
           </View>
         </View>
@@ -332,10 +349,10 @@ export default function SequenceGame({
       >
         <Text style={styles.primaryButtonText}>
           {gameState === 'idle'
-            ? 'Start Game'
+            ? (t('common.startGame') || 'Start Game')
             : gameState === 'gameover'
-            ? 'Play Again'
-            : 'Restart Game'}
+            ? (t('common.playAgain') || 'Play Again')
+            : (t('common.restartGame') || 'Restart Game')}
         </Text>
       </TouchableOpacity>
     </SafeAreaView>
@@ -361,7 +378,7 @@ export default function SequenceGame({
         onPress={() => handleCirclePress(item.id)}
         disabled={!isInteractive}
         activeOpacity={0.75}
-        accessibilityLabel={`${item.label} circle`}
+        accessibilityLabel={`${getColorLabel(item.id)} circle`}
         accessibilityRole="button"
       >
         <Text
@@ -371,7 +388,7 @@ export default function SequenceGame({
             isLit && styles.circleLabelActive,
           ]}
         >
-          {item.label}
+          {getColorLabel(item.id)}
         </Text>
       </TouchableOpacity>
     );

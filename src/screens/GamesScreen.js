@@ -28,7 +28,7 @@ export default function GamesScreen() {
           </Text>
           
           <Text style={{ fontSize: 16, color: theme.subText, marginBottom: 20 }}>
-            Select an exercise to help maintain cognitive function and memory.
+            {t('games.subtitle') || 'Select an exercise to help maintain cognitive function and memory.'}
           </Text>
 
           {/* North East Photo Memory Game */}
@@ -40,8 +40,12 @@ export default function GamesScreen() {
               <Ionicons name="image" size={24} color="#059669" />
             </View>
             <View style={styles.cardTextContainer}>
-              <Text style={[styles.menuCardTitle, { color: theme.text }]}>🏞️ North East Memory</Text>
-              <Text style={[styles.menuCardSub, { color: theme.subText }]}>Observe scenic photos & recall details</Text>
+              <Text style={[styles.menuCardTitle, { color: theme.text }]}>
+                {t('games.northeastTitle') || '🏞️ North East Memory'}
+              </Text>
+              <Text style={[styles.menuCardSub, { color: theme.subText }]}>
+                {t('games.northeastSub') || 'Observe scenic photos & recall details'}
+              </Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={theme.subText} />
           </TouchableOpacity>
@@ -85,7 +89,9 @@ export default function GamesScreen() {
             </View>
             <View style={styles.cardTextContainer}>
               <Text style={[styles.menuCardTitle, { color: theme.text }]}>{t('games.sequenceRecall')}</Text>
-              <Text style={[styles.menuCardSub, { color: theme.subText }]}>Practice pattern recognition</Text>
+              <Text style={[styles.menuCardSub, { color: theme.subText }]}>
+                {t('games.sequenceSub') || 'Practice pattern recognition'}
+              </Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={theme.subText} />
           </TouchableOpacity>
@@ -99,7 +105,9 @@ export default function GamesScreen() {
             </View>
             <View style={styles.cardTextContainer}>
               <Text style={[styles.menuCardTitle, { color: theme.text }]}>{t('games.memoryMatch')}</Text>
-              <Text style={[styles.menuCardSub, { color: theme.subText }]}>Improve short-term memory</Text>
+              <Text style={[styles.menuCardSub, { color: theme.subText }]}>
+                {t('games.memoryMatchSub') || 'Improve short-term memory'}
+              </Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={theme.subText} />
           </TouchableOpacity>
@@ -113,7 +121,9 @@ export default function GamesScreen() {
             </View>
             <View style={styles.cardTextContainer}>
               <Text style={[styles.menuCardTitle, { color: theme.text }]}>{t('games.supermarket')}</Text>
-              <Text style={[styles.menuCardSub, { color: theme.subText }]}>Practice daily tasks</Text>
+              <Text style={[styles.menuCardSub, { color: theme.subText }]}>
+                {t('games.supermarketSub') || 'Practice daily tasks'}
+              </Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={theme.subText} />
           </TouchableOpacity>
@@ -127,7 +137,9 @@ export default function GamesScreen() {
             </View>
             <View style={styles.cardTextContainer}>
               <Text style={[styles.menuCardTitle, { color: theme.text }]}>{t('games.sorting')}</Text>
-              <Text style={[styles.menuCardSub, { color: theme.subText }]}>Categorize objects</Text>
+              <Text style={[styles.menuCardSub, { color: theme.subText }]}>
+                {t('games.sortingSub') || 'Categorize objects'}
+              </Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={theme.subText} />
           </TouchableOpacity>
@@ -141,7 +153,9 @@ export default function GamesScreen() {
             </View>
             <View style={styles.cardTextContainer}>
               <Text style={[styles.menuCardTitle, { color: theme.text }]}>{t('games.memoryPath')}</Text>
-              <Text style={[styles.menuCardSub, { color: theme.subText }]}>Recall sequences</Text>
+              <Text style={[styles.menuCardSub, { color: theme.subText }]}>
+                {t('games.memoryPathSub') || 'Recall sequences'}
+              </Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={theme.subText} />
           </TouchableOpacity>

@@ -9,6 +9,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 
 const SUPERMARKET_ITEMS = [
   { id: 'apple', label: 'Apple', icon: 'food-apple' },
@@ -67,19 +68,53 @@ export default function SupermarketGame({
   onComplete,
 }) {
   const { theme, isDarkMode } = useTheme();
+  const { t } = useLanguage();
+
+  const getItemLabel = (id) => {
+    return t(`games.supermarketGame.items.${id}`) || id;
+  };
+
+  const getDifficultyDesc = (diff) => {
+    if (diff === 'Easy') return t('games.supermarketGame.easyDesc') || DIFFICULTY_CONFIG.Easy.description;
+    if (diff === 'Medium') return t('games.supermarketGame.mediumDesc') || DIFFICULTY_CONFIG.Medium.description;
+    return t('games.supermarketGame.hardDesc') || DIFFICULTY_CONFIG.Hard.description;
+  };
+
   const [difficulty, setDifficulty] = useState(initialDifficulty);
   const [gameState, setGameState] = useState('idle'); // 'idle' | 'playing' | 'gameover'
   const [round, setRound] = useState(1);
   const [score, setScore] = useState(0);
   const [duration, setDuration] = useState(0);
   const [startTime, setStartTime] = useState(null);
-  const [statusMessage, setStatusMessage] = useState('Press "Start Game" to go shopping!');
+  const [statusKey, setStatusKey] = useState('desc');
   
   const [currentRoundData, setCurrentRoundData] = useState(() => generateRoundData(initialDifficulty));
   const [foundItemIds, setFoundItemIds] = useState([]);
   const [wrongFeedbackId, setWrongFeedbackId] = useState(null);
 
   const timeoutsRef = useRef([]);
+
+  const getStatusText = () => {
+    switch (statusKey) {
+      case 'findPrompt':
+        return t('games.supermarketGame.findPrompt');
+      case 'findNewPrompt':
+        return t('games.supermarketGame.findNewPrompt');
+      case 'allFound':
+        return t('games.supermarketGame.allFound');
+      case 'greatJob':
+        return t('games.supermarketGame.greatJob');
+      case 'keepGoing':
+        return t('games.supermarketGame.keepGoing');
+      case 'notOnList':
+        return t('games.supermarketGame.notOnList');
+      case 'tripComplete':
+        return t('games.supermarketGame.tripComplete');
+      case 'desc':
+      default:
+        return t('games.supermarketGame.desc');
+    }
+  };
 
   const clearAllTimeouts = () => {
     timeoutsRef.current.forEach((timeoutId) => clearTimeout(timeoutId));
@@ -116,7 +151,7 @@ export default function SupermarketGame({
     setWrongFeedbackId(null);
     setCurrentRoundData(generateRoundData(difficulty));
     setGameState('playing');
-    setStatusMessage('Find the items on your list.');
+    setStatusKey('findPrompt');
   };
 
   const handleGameOver = (finalScore) => {
@@ -124,7 +159,7 @@ export default function SupermarketGame({
     setGameState('gameover');
     const finalDuration = startTime ? Math.max(1, Math.floor((Date.now() - startTime) / 1000)) : duration;
     setDuration(finalDuration);
-    setStatusMessage('Shopping complete! Great job!');
+    setStatusKey('tripComplete');
 
     const result = {
       score: finalScore,
@@ -153,7 +188,7 @@ export default function SupermarketGame({
       setWrongFeedbackId(null);
       
       if (newFound.length === currentRoundData.targetItems.length) {
-        setStatusMessage('Great job! All items found!');
+        setStatusKey('allFound');
         
         const nextRound = round + 1;
         const delayTimer = setTimeout(() => {
@@ -163,27 +198,27 @@ export default function SupermarketGame({
             setRound(nextRound);
             setCurrentRoundData(generateRoundData(difficulty));
             setFoundItemIds([]);
-            setStatusMessage('Find the items on your new list.');
+            setStatusKey('findNewPrompt');
           }
         }, 1500);
         timeoutsRef.current.push(delayTimer);
       } else {
-        setStatusMessage('Great job!');
+        setStatusKey('greatJob');
         const clearMsgTimer = setTimeout(() => {
             if(gameState === 'playing') {
-                setStatusMessage('Keep going!');
+                setStatusKey('keepGoing');
             }
         }, 1200);
         timeoutsRef.current.push(clearMsgTimer);
       }
     } else {
-      setStatusMessage('That item is not on the list.');
+      setStatusKey('notOnList');
       setWrongFeedbackId(item.id);
       
       const wrongFeedbackTimer = setTimeout(() => {
         setWrongFeedbackId(null);
         if(gameState === 'playing') {
-            setStatusMessage('Find the items on your list.');
+            setStatusKey('findPrompt');
         }
       }, 1500);
       timeoutsRef.current.push(wrongFeedbackTimer);
@@ -194,30 +229,32 @@ export default function SupermarketGame({
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Title */}
-        <Text style={[styles.title, { color: theme.text }]}>Supermarket Run</Text>
+        <Text style={[styles.title, { color: theme.text }]}>{t('games.supermarketGame.title')}</Text>
 
         {/* Stats Header */}
         <View style={styles.statsContainer}>
           <View style={[styles.statCard, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder, borderWidth: 1 }]}>
-            <Text style={[styles.statLabel, { color: theme.subText }]}>ROUND</Text>
+            <Text style={[styles.statLabel, { color: theme.subText }]}>{t('common.round').toUpperCase()}</Text>
             <Text style={[styles.statValue, { color: theme.text }]}>
               {gameState === 'idle' ? '-' : `${round}/${MAX_ROUNDS}`}
             </Text>
           </View>
           <View style={[styles.statCard, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder, borderWidth: 1 }]}>
-            <Text style={[styles.statLabel, { color: theme.subText }]}>SCORE</Text>
+            <Text style={[styles.statLabel, { color: theme.subText }]}>{t('common.score').toUpperCase()}</Text>
             <Text style={[styles.statValue, { color: theme.text }]}>{score}</Text>
           </View>
           <View style={[styles.statCard, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder, borderWidth: 1 }]}>
-            <Text style={[styles.statLabel, { color: theme.subText }]}>TIME</Text>
-            <Text style={[styles.statValue, { color: theme.text }]}>{duration}s</Text>
+            <Text style={[styles.statLabel, { color: theme.subText }]}>{t('common.time').toUpperCase()}</Text>
+            <Text style={[styles.statValue, { color: theme.text }]}>{duration}{t('common.seconds')}</Text>
           </View>
         </View>
 
         {/* Difficulty Selector */}
         {gameState === 'idle' && (
           <View style={styles.difficultyContainer}>
-            <Text style={[styles.difficultyHeading, { color: theme.subText }]}>Select Difficulty:</Text>
+            <Text style={[styles.difficultyHeading, { color: theme.subText }]}>
+              {t('games.memoryMatchGame.selectDifficulty')}:
+            </Text>
             <View style={styles.difficultyButtons}>
               {['Easy', 'Medium', 'Hard'].map((diff) => (
                 <TouchableOpacity
@@ -240,13 +277,13 @@ export default function SupermarketGame({
                       difficulty === diff && styles.difficultyButtonTextActive,
                     ]}
                   >
-                    {diff}
+                    {t(`common.${diff.toLowerCase()}`) || diff}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
             <Text style={[styles.difficultySubtitle, { color: theme.primary }]}>
-              {DIFFICULTY_CONFIG[difficulty]?.description}
+              {getDifficultyDesc(difficulty)}
             </Text>
           </View>
         )}
@@ -256,18 +293,20 @@ export default function SupermarketGame({
           style={[
             styles.statusBanner,
             { backgroundColor: isDarkMode ? '#1e293b' : '#E0F2FE', borderColor: isDarkMode ? '#334155' : '#BAE6FD' },
-            statusMessage.includes('Great job') && (isDarkMode ? { backgroundColor: '#143823', borderColor: '#16a34a' } : styles.bannerCorrect),
-            statusMessage.includes('not on the list') && (isDarkMode ? { backgroundColor: '#450a0a', borderColor: '#dc2626' } : styles.bannerIncorrect),
+            (statusKey === 'allFound' || statusKey === 'greatJob') && (isDarkMode ? { backgroundColor: '#143823', borderColor: '#16a34a' } : styles.bannerCorrect),
+            statusKey === 'notOnList' && (isDarkMode ? { backgroundColor: '#450a0a', borderColor: '#dc2626' } : styles.bannerIncorrect),
             gameState === 'gameover' && (isDarkMode ? { backgroundColor: '#1f2937', borderColor: theme.cardBorder } : styles.bannerGameOver),
           ]}
         >
-          <Text style={[styles.statusText, { color: theme.text }]}>{statusMessage}</Text>
+          <Text style={[styles.statusText, { color: theme.text }]}>{getStatusText()}</Text>
         </View>
 
         {/* Shopping List */}
         {(gameState === 'playing' || gameState === 'gameover') && (
           <View style={[styles.listContainer, isDarkMode && { backgroundColor: '#292524', borderColor: '#44403c' }]}>
-            <Text style={[styles.listTitle, isDarkMode && { color: '#fef08a' }]}>Shopping List</Text>
+            <Text style={[styles.listTitle, isDarkMode && { color: '#fef08a' }]}>
+              {t('games.supermarketGame.shoppingList')}
+            </Text>
             <View style={styles.listItemsWrapper}>
               {currentRoundData.targetItems.map(item => {
                 const isFound = foundItemIds.includes(item.id);
@@ -281,7 +320,7 @@ export default function SupermarketGame({
                       { color: theme.text },
                       isFound && styles.listTextFound
                     ]}>
-                      <MaterialCommunityIcons name={item.icon} size={18} color={theme.primary} style={{ marginRight: 4 }} /> {item.label}
+                      <MaterialCommunityIcons name={item.icon} size={18} color={theme.primary} style={{ marginRight: 4 }} /> {getItemLabel(item.id)}
                     </Text>
                   </View>
                 );
@@ -293,7 +332,9 @@ export default function SupermarketGame({
         {/* Supermarket Shelf */}
         {gameState === 'playing' && (
           <View style={[styles.shelfContainer, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder }]}>
-            <Text style={[styles.shelfTitle, { color: theme.text }]}>Supermarket Shelf</Text>
+            <Text style={[styles.shelfTitle, { color: theme.text }]}>
+              {t('games.supermarketGame.shelfTitle')}
+            </Text>
             <View style={styles.shelfGrid}>
               {currentRoundData.shelfItems.map(item => {
                 const isFound = foundItemIds.includes(item.id);
@@ -313,7 +354,7 @@ export default function SupermarketGame({
                     disabled={isFound}
                   >
                     <MaterialCommunityIcons name={item.icon} size={36} color={isFound ? theme.subText : theme.primary} style={{ marginBottom: 4 }} />
-                    <Text style={[styles.shelfLabel, { color: theme.text }]}>{item.label}</Text>
+                    <Text style={[styles.shelfLabel, { color: theme.text }]}>{getItemLabel(item.id)}</Text>
                     {isFound && (
                       <View style={styles.foundOverlay}>
                         <Text style={styles.foundCheck}>✓</Text>
@@ -329,18 +370,20 @@ export default function SupermarketGame({
         {/* Game Over Summary */}
         {gameState === 'gameover' && (
           <View style={[styles.gameOverCard, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder }]}>
-            <Text style={styles.gameOverTitle}>Shopping Trip Complete!</Text>
+            <Text style={styles.gameOverTitle}>{t('games.supermarketGame.tripComplete')}</Text>
             <View style={styles.resultRow}>
-              <Text style={[styles.resultLabel, { color: theme.subText }]}>Total Items Found:</Text>
+              <Text style={[styles.resultLabel, { color: theme.subText }]}>{t('games.supermarketGame.totalFound')}</Text>
               <Text style={[styles.resultValue, { color: theme.text }]}>{score}</Text>
             </View>
             <View style={styles.resultRow}>
-              <Text style={[styles.resultLabel, { color: theme.subText }]}>Duration:</Text>
-              <Text style={[styles.resultValue, { color: theme.text }]}>{duration} seconds</Text>
+              <Text style={[styles.resultLabel, { color: theme.subText }]}>{t('common.duration')}:</Text>
+              <Text style={[styles.resultValue, { color: theme.text }]}>{duration} {t('common.seconds')}</Text>
             </View>
             <View style={styles.resultRow}>
-              <Text style={[styles.resultLabel, { color: theme.subText }]}>Difficulty:</Text>
-              <Text style={[styles.resultValue, { color: theme.text }]}>{difficulty}</Text>
+              <Text style={[styles.resultLabel, { color: theme.subText }]}>{t('common.difficulty')}:</Text>
+              <Text style={[styles.resultValue, { color: theme.text }]}>
+                {t(`common.${difficulty.toLowerCase()}`) || difficulty}
+              </Text>
             </View>
           </View>
         )}
@@ -356,10 +399,10 @@ export default function SupermarketGame({
         >
           <Text style={styles.primaryButtonText}>
             {gameState === 'idle'
-              ? 'Start Game'
+              ? t('common.startGame')
               : gameState === 'gameover'
-              ? 'Play Again'
-              : 'Restart Game'}
+              ? t('common.playAgain')
+              : t('common.restartGame')}
           </Text>
         </TouchableOpacity>
 

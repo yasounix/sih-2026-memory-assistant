@@ -8,6 +8,7 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 
 const ICONS = ['heart', 'star', 'musical-notes', 'flower', 'leaf', 'paw', 'sunny', 'moon'];
 
@@ -41,13 +42,21 @@ export default function MemoryMatchGame({
   onComplete,
 }) {
   const { theme, isDarkMode } = useTheme();
+  const { t } = useLanguage();
+
+  const getDifficultyDesc = (diff) => {
+    if (diff === 'Easy') return t('games.memoryMatchGame.easyDesc') || DIFFICULTY_SETTINGS.Easy.description;
+    if (diff === 'Medium') return t('games.memoryMatchGame.mediumDesc') || DIFFICULTY_SETTINGS.Medium.description;
+    return t('games.memoryMatchGame.hardDesc') || DIFFICULTY_SETTINGS.Hard.description;
+  };
+
   const [difficulty, setDifficulty] = useState(initialDifficulty);
   const [gameState, setGameState] = useState('idle'); // 'idle' | 'playing' | 'gameover'
   const [cards, setCards] = useState(() => createShuffledDeck(initialDifficulty));
   const [flippedIndices, setFlippedIndices] = useState([]);
   const [matchedIndices, setMatchedIndices] = useState([]);
   const [score, setScore] = useState(0); // number of attempts
-  const [statusMessage, setStatusMessage] = useState('Press "Start Game" to begin!');
+  const [statusMessage, setStatusMessage] = useState(t('games.memoryMatchGame.pressStart') || 'Press "Start Game" to begin!');
   const [duration, setDuration] = useState(0);
   const [startTime, setStartTime] = useState(null);
   const [isProcessingMismatch, setIsProcessingMismatch] = useState(false);
@@ -150,18 +159,18 @@ export default function MemoryMatchGame({
           }, 600);
           timeoutsRef.current.push(finishTimeout);
         } else {
-          setStatusMessage(`Match found! ${pairsRemaining} ${pairsRemaining === 1 ? 'pair' : 'pairs'} left.`);
+          setStatusMessage(t('games.memoryMatchGame.wellDone') || 'Well done! You matched a pair!');
         }
       } else {
         // Not a match - flip back after delay
         setIsProcessingMismatch(true);
-        setStatusMessage('Not a match, try again!');
+        setStatusMessage(t('games.memoryMatchGame.tryAgainPair') || 'Not a match, try again!');
 
         const settings = DIFFICULTY_SETTINGS[difficulty] || DIFFICULTY_SETTINGS.Easy;
         const flipBackTimeout = setTimeout(() => {
           setFlippedIndices([]);
           setIsProcessingMismatch(false);
-          setStatusMessage('Find matching pairs of cards!');
+          setStatusMessage(t('games.memoryMatchGame.desc') || 'Find matching pairs of cards!');
         }, settings.flipBackDuration);
 
         timeoutsRef.current.push(flipBackTimeout);
@@ -174,30 +183,34 @@ export default function MemoryMatchGame({
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Title */}
-      <Text style={[styles.title, { color: theme.text }]}>Memory Match</Text>
+      <Text style={[styles.title, { color: theme.text }]}>
+        {t('games.memoryMatchGame.title') || 'Memory Match'}
+      </Text>
 
       {/* Stats Header: Pairs Matched, Attempts/Score, Time */}
       <View style={styles.statsContainer}>
         <View style={[styles.statCard, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder, borderWidth: 1 }]}>
-          <Text style={[styles.statLabel, { color: theme.subText }]}>PAIRS</Text>
+          <Text style={[styles.statLabel, { color: theme.subText }]}>{t('common.round') || 'PAIRS'}</Text>
           <Text style={[styles.statValue, { color: theme.text }]}>
             {matchedPairsCount}/{cards.length / 2}
           </Text>
         </View>
         <View style={[styles.statCard, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder, borderWidth: 1 }]}>
-          <Text style={[styles.statLabel, { color: theme.subText }]}>ATTEMPTS</Text>
+          <Text style={[styles.statLabel, { color: theme.subText }]}>{t('common.score') || 'ATTEMPTS'}</Text>
           <Text style={[styles.statValue, { color: theme.text }]}>{score}</Text>
         </View>
         <View style={[styles.statCard, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder, borderWidth: 1 }]}>
-          <Text style={[styles.statLabel, { color: theme.subText }]}>TIME</Text>
-          <Text style={[styles.statValue, { color: theme.text }]}>{duration}s</Text>
+          <Text style={[styles.statLabel, { color: theme.subText }]}>{t('common.time') || 'TIME'}</Text>
+          <Text style={[styles.statValue, { color: theme.text }]}>{duration}{t('common.seconds') || 's'}</Text>
         </View>
       </View>
 
       {/* Difficulty Selector (available before starting) */}
       {gameState === 'idle' && (
         <View style={styles.difficultyContainer}>
-          <Text style={[styles.difficultyHeading, { color: theme.subText }]}>Select Difficulty:</Text>
+          <Text style={[styles.difficultyHeading, { color: theme.subText }]}>
+            {t('games.memoryMatchGame.selectDifficulty') || 'Select Difficulty:'}
+          </Text>
           <View style={styles.difficultyButtons}>
             {['Easy', 'Medium', 'Hard'].map((diff) => (
               <TouchableOpacity
@@ -225,7 +238,7 @@ export default function MemoryMatchGame({
             ))}
           </View>
           <Text style={[styles.difficultySubtitle, { color: theme.primary }]}>
-            {DIFFICULTY_SETTINGS[difficulty]?.description}
+            {getDifficultyDesc(difficulty)}
           </Text>
         </View>
       )}
@@ -265,21 +278,23 @@ export default function MemoryMatchGame({
       {/* Game Over Summary */}
       {gameState === 'gameover' && (
         <View style={[styles.gameOverCard, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder }]}>
-          <Text style={styles.gameOverTitle}>Game Complete!</Text>
+          <Text style={styles.gameOverTitle}>
+            {t('games.memoryMatchGame.winTitle') || 'Game Complete!'}
+          </Text>
           <View style={styles.resultRow}>
-            <Text style={[styles.resultLabel, { color: theme.subText }]}>Total Attempts:</Text>
+            <Text style={[styles.resultLabel, { color: theme.subText }]}>{t('common.score')}:</Text>
             <Text style={[styles.resultValue, { color: theme.text }]}>{score}</Text>
           </View>
           <View style={styles.resultRow}>
-            <Text style={[styles.resultLabel, { color: theme.subText }]}>Duration:</Text>
-            <Text style={[styles.resultValue, { color: theme.text }]}>{duration} seconds</Text>
+            <Text style={[styles.resultLabel, { color: theme.subText }]}>{t('common.time')}:</Text>
+            <Text style={[styles.resultValue, { color: theme.text }]}>{duration}{t('common.seconds') || 's'}</Text>
           </View>
           <View style={styles.resultRow}>
-            <Text style={[styles.resultLabel, { color: theme.subText }]}>Difficulty:</Text>
+            <Text style={[styles.resultLabel, { color: theme.subText }]}>{t('common.level')}:</Text>
             <Text style={[styles.resultValue, { color: theme.text }]}>{difficulty}</Text>
           </View>
           <View style={styles.resultRow}>
-            <Text style={[styles.resultLabel, { color: theme.subText }]}>Pairs Matched:</Text>
+            <Text style={[styles.resultLabel, { color: theme.subText }]}>{t('common.round')}:</Text>
             <Text style={[styles.resultValue, { color: theme.text }]}>{cards.length / 2} / {cards.length / 2}</Text>
           </View>
         </View>
@@ -296,10 +311,10 @@ export default function MemoryMatchGame({
       >
         <Text style={styles.primaryButtonText}>
           {gameState === 'idle'
-            ? 'Start Game'
+            ? (t('common.startGame') || 'Start Game')
             : gameState === 'gameover'
-            ? 'Play Again'
-            : 'Restart Game'}
+            ? (t('common.playAgain') || 'Play Again')
+            : (t('common.restartGame') || 'Restart Game')}
         </Text>
       </TouchableOpacity>
     </SafeAreaView>

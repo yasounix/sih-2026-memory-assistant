@@ -13,6 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { usePatient } from '../context/PatientContext';
+import { useLanguage } from '../context/LanguageContext';
 import {
   getNextMemoryScene,
   getSceneQuestions,
@@ -148,6 +149,13 @@ export default function NortheastMemoryGame({
   onExit,
 }) {
   const { theme } = useTheme();
+  const { t } = useLanguage();
+
+  const getDifficultyLabel = (lvl) => {
+    if (lvl === 'Easy') return t('games.northeastGame.easyLabel') || 'Easy (30s)';
+    if (lvl === 'Medium') return t('games.northeastGame.mediumLabel') || 'Medium (20s)';
+    return t('games.northeastGame.hardLabel') || 'Hard (10s)';
+  };
   const { patientId } = usePatient();
 
   // Validate patientId - fallback to P001 for seamless play
@@ -513,22 +521,22 @@ export default function NortheastMemoryGame({
               onPress={handleExit}
             >
               <Ionicons name="arrow-back" size={24} color={theme.text} />
-              <Text style={[styles.backIconText, { color: theme.text }]}>Back</Text>
+              <Text style={[styles.backIconText, { color: theme.text }]}>{t('common.back') || 'Back'}</Text>
             </TouchableOpacity>
           </View>
 
           <View style={[styles.card, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder, marginTop: 12 }]}>
             <Text style={[styles.largeTitle, { color: theme.text }]}>
-              🏞️ North East Memory
+              {t('games.northeastGame.title') || '🏞️ North East Memory'}
             </Text>
             <Text style={[styles.bodyText, { color: theme.subText, marginTop: 12 }]}>
-              Look at the photo carefully. Then answer questions about what you saw.
+              {t('games.northeastGame.desc') || 'Look at the photo carefully. Then answer questions about what you saw.'}
             </Text>
           </View>
 
           <View style={[styles.card, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder, marginTop: 16 }]}>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>
-              Select Difficulty
+              {t('games.northeastGame.selectDifficulty') || 'Select Difficulty'}
             </Text>
 
             {['Easy', 'Medium', 'Hard'].map((lvl) => {
@@ -552,7 +560,7 @@ export default function NortheastMemoryGame({
                       { color: isSelected ? theme.cardBackground : theme.text },
                     ]}
                   >
-                    {DIFFICULTY_CONFIG[lvl].label}
+                    {getDifficultyLabel(lvl)}
                   </Text>
                 </TouchableOpacity>
               );
@@ -564,7 +572,7 @@ export default function NortheastMemoryGame({
             onPress={handleStartGamePress}
           >
             <Text style={[styles.buttonText, { color: theme.cardBackground, fontWeight: 'bold' }]}>
-              Start Game
+              {t('common.startGame') || 'Start Game'}
             </Text>
           </TouchableOpacity>
         </ScrollView>
@@ -581,7 +589,7 @@ export default function NortheastMemoryGame({
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color={theme.primary} />
           <Text style={[styles.sectionTitle, { color: theme.text, marginTop: 24 }]}>
-            Loading photo...
+            {t('games.northeastGame.loadingScene') || 'Loading photo...'}
           </Text>
         </View>
       </SafeAreaView>
@@ -597,10 +605,10 @@ export default function NortheastMemoryGame({
         <View style={[styles.centerContainer, { padding: 24 }]}>
           <Ionicons name="alert-circle-outline" size={64} color="#EF4444" style={{ marginBottom: 16 }} />
           <Text style={[styles.largeTitle, { color: theme.text, textAlign: 'center' }]}>
-            Something went wrong
+            {t('common.error') || 'Something went wrong'}
           </Text>
           <Text style={[styles.bodyText, { color: theme.subText, marginTop: 12, textAlign: 'center' }]}>
-            {errorMessage || 'Something went wrong. Please try again.'}
+            {errorMessage || t('games.northeastGame.loadFailed') || 'Something went wrong. Please try again.'}
           </Text>
 
           <TouchableOpacity
@@ -608,7 +616,7 @@ export default function NortheastMemoryGame({
             onPress={loadNextScene}
           >
             <Text style={[styles.buttonText, { color: theme.cardBackground, fontWeight: 'bold' }]}>
-              Try Again
+              {t('common.tryAgain') || 'Try Again'}
             </Text>
           </TouchableOpacity>
 
@@ -617,7 +625,7 @@ export default function NortheastMemoryGame({
             onPress={() => setGameState('idle')}
           >
             <Text style={[styles.buttonText, { color: theme.text }]}>
-              Back to Start
+              {t('common.back') || 'Back to Start'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -634,10 +642,10 @@ export default function NortheastMemoryGame({
         <View style={[styles.centerContainer, { padding: 24 }]}>
           <Ionicons name="trophy-outline" size={72} color="#059669" style={{ marginBottom: 16 }} />
           <Text style={[styles.largeTitle, { color: theme.text, textAlign: 'center' }]}>
-            You've seen all photos! Great job!
+            {t('games.northeastGame.completeTitle') || "You've seen all photos! Great job!"}
           </Text>
           <Text style={[styles.bodyText, { color: theme.subText, marginTop: 12, textAlign: 'center' }]}>
-            You have explored every photograph available in this memory exercise.
+            {t('games.northeastGame.noQuestions') || 'You have explored every photograph available in this memory exercise.'}
           </Text>
 
           <TouchableOpacity
@@ -645,7 +653,7 @@ export default function NortheastMemoryGame({
             onPress={handleResetHistoryAndPlay}
           >
             <Text style={[styles.buttonText, { color: theme.cardBackground, fontWeight: 'bold' }]}>
-              Replay All Photos
+              {t('common.playAgain') || 'Replay All Photos'}
             </Text>
           </TouchableOpacity>
 
@@ -654,7 +662,7 @@ export default function NortheastMemoryGame({
             onPress={handleExit}
           >
             <Text style={[styles.buttonText, { color: theme.text }]}>
-              Back to Games
+              {t('games.backToMenu') || 'Back to Games'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -685,16 +693,16 @@ export default function NortheastMemoryGame({
               onPress={handleExit}
             >
               <Ionicons name="arrow-back" size={24} color={theme.text} />
-              <Text style={[styles.backIconText, { color: theme.text }]}>Exit</Text>
+              <Text style={[styles.backIconText, { color: theme.text }]}>{t('common.exit') || 'Exit'}</Text>
             </TouchableOpacity>
           </View>
 
           <View style={[styles.card, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder, alignItems: 'center', marginTop: 12 }]}>
             <Text style={[styles.sectionTitle, { color: theme.text, textAlign: 'center' }]}>
-              Take your time. Look carefully.
+              {t('games.northeastGame.lookCarefully') || 'Take your time. Look carefully.'}
             </Text>
             <Text style={[styles.timerText, { color: theme.primary, marginTop: 8 }]}>
-              {observationTimeLeft}s
+              {observationTimeLeft}{t('common.seconds') || 's'}
             </Text>
           </View>
 
@@ -749,7 +757,7 @@ export default function NortheastMemoryGame({
               onPress={handleExit}
             >
               <Ionicons name="arrow-back" size={24} color={theme.text} />
-              <Text style={[styles.backIconText, { color: theme.text }]}>Exit</Text>
+              <Text style={[styles.backIconText, { color: theme.text }]}>{t('common.exit') || 'Exit'}</Text>
             </TouchableOpacity>
           </View>
 
@@ -757,10 +765,10 @@ export default function NortheastMemoryGame({
           <View style={[styles.card, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder, marginTop: 12 }]}>
             <View style={styles.rowBetween}>
               <Text style={[styles.badgeText, { color: theme.primary }]}>
-                Question {currentQuestionIndex + 1} of {questions.length}
+                {t('games.northeastGame.questionHeader', { current: currentQuestionIndex + 1, total: questions.length }) || `Question ${currentQuestionIndex + 1} of ${questions.length}`}
               </Text>
               <Text style={[styles.badgeText, { color: theme.subText }]}>
-                Score: {roundScore}
+                {t('common.score')}: {roundScore}
               </Text>
             </View>
 
@@ -831,8 +839,8 @@ export default function NortheastMemoryGame({
                 ]}
               >
                 {isLastAnswerCorrect
-                  ? '✨ Correct! Well done!'
-                  : `Correct answer: ${sanitizeText(String(currentQuestion?.answer))}`}
+                  ? (t('games.northeastGame.correctMsg') || '✨ Correct! Well done!')
+                  : (t('games.northeastGame.correctAnswerWas', { answer: sanitizeText(String(currentQuestion?.answer)) }) || `Correct answer: ${sanitizeText(String(currentQuestion?.answer))}`)}
               </Text>
             </View>
           )}
@@ -850,10 +858,10 @@ export default function NortheastMemoryGame({
         <View style={[styles.centerContainer, { padding: 24 }]}>
           <Ionicons name="sparkles" size={64} color="#10B981" style={{ marginBottom: 16 }} />
           <Text style={[styles.largeTitle, { color: theme.text, textAlign: 'center' }]}>
-            Great job!
+            {t('common.correct') || 'Great job!'}
           </Text>
           <Text style={[styles.sectionTitle, { color: theme.subText, marginTop: 12, textAlign: 'center' }]}>
-            You found {roundScore} out of {questions.length} correct.
+            {t('games.northeastGame.score', { score: roundScore, total: questions.length }) || `You found ${roundScore} out of ${questions.length} correct.`}
           </Text>
 
           <TouchableOpacity
@@ -861,7 +869,7 @@ export default function NortheastMemoryGame({
             onPress={loadNextScene}
           >
             <Text style={[styles.buttonText, { color: theme.cardBackground, fontWeight: 'bold' }]}>
-              Next Photo
+              {t('games.northeastGame.nextQuestion') || 'Next Photo'}
             </Text>
           </TouchableOpacity>
 
@@ -870,7 +878,7 @@ export default function NortheastMemoryGame({
             onPress={() => setGameState('gameover')}
           >
             <Text style={[styles.buttonText, { color: theme.text }]}>
-              Finish Game
+              {t('common.done') || 'Finish Game'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -886,18 +894,18 @@ export default function NortheastMemoryGame({
       <View style={[styles.centerContainer, { padding: 24 }]}>
         <Ionicons name="trophy-outline" size={72} color={theme.primary} style={{ marginBottom: 16 }} />
         <Text style={[styles.largeTitle, { color: theme.text, textAlign: 'center' }]}>
-          Game Complete!
+          {t('games.northeastGame.completeTitle') || 'Game Complete!'}
         </Text>
 
         <View style={[styles.card, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder, width: '100%', marginTop: 24 }]}>
           <Text style={[styles.largeTitle, { color: theme.text, textAlign: 'center' }]}>
-            Total Score: {totalScore}
+            {t('common.score')}: {totalScore}
           </Text>
           <Text style={[styles.bodyText, { color: theme.subText, marginTop: 10, textAlign: 'center' }]}>
-            Difficulty: {difficulty} · Time: {totalDuration}s
+            {t('common.level')}: {getDifficultyLabel(difficulty)} · {t('common.time')}: {totalDuration}{t('common.seconds') || 's'}
           </Text>
           <Text style={[styles.bodyText, { color: theme.subText, marginTop: 4, textAlign: 'center' }]}>
-            Scenes Completed: {scenesCompleted}
+            {t('games.northeastGame.accuracy', { acc: Math.round((totalScore / Math.max(1, scenesCompleted * 4)) * 100) }) || `Scenes Completed: ${scenesCompleted}`}
           </Text>
         </View>
 
@@ -906,7 +914,7 @@ export default function NortheastMemoryGame({
           onPress={loadNextScene}
         >
           <Text style={[styles.buttonText, { color: theme.cardBackground, fontWeight: 'bold' }]}>
-            Play Again
+            {t('common.playAgain') || 'Play Again'}
           </Text>
         </TouchableOpacity>
 
@@ -915,7 +923,7 @@ export default function NortheastMemoryGame({
           onPress={handleFinishGame}
         >
           <Text style={[styles.buttonText, { color: theme.text }]}>
-            Back to Games
+            {t('games.backToMenu') || 'Back to Games'}
           </Text>
         </TouchableOpacity>
       </View>
