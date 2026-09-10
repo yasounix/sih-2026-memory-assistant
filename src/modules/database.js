@@ -1,4 +1,4 @@
-import { supabase } from './supabaseClient';
+import { supabase } from './supabaseClient.js';
 
 export const getPatientProfile = async (patientId) => {
   const { data, error } = await supabase

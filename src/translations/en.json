@@ -22,6 +22,8 @@
     "supermarket": "Supermarket",
     "sorting": "Item Sorting",
     "memoryPath": "Memory Path",
+    "memoryStoriesTitle": "Memory Stories",
+    "memoryStoriesSub": "Read short stories and recall details",
     "backToMenu": "Back to Exercises",
     "dhopkhel": {
       "title": "Dhopkhel Memory",
@@ -37,6 +39,14 @@
       "nextRound": "NEXT ROUND",
       "tryAgain": "TRY AGAIN",
       "changeLevel": "Change Level",
+      "restartGame": "Restart Game",
+      "progress": "Progress: %{percent}%",
+      "levelUnlockedTitle": "Level Complete!",
+      "levelUnlockedSub": "Wonderful! You have unlocked %{level}!",
+      "continueNextLevel": "CONTINUE TO %{level}",
+      "gameCompleteTitle": "CONGRATULATIONS!",
+      "gameCompleteSub": "You completed all levels of Dhopkhel Memory with fantastic focus!",
+      "playAgain": "PLAY AGAIN",
       "saveAndReturn": "SAVE & RETURN",
       "backToGames": "Back to Games",
       "selectDifficulty": "SELECT DIFFICULTY",
@@ -131,6 +141,123 @@
       "accessibilityGoBack": "Go back",
       "accessibilityMuteAudio": "Mute audio",
       "accessibilityUnmuteAudio": "Unmute audio"
+    },
+    "memoryStories": {
+      "title": "Memory Stories",
+      "tagline": "Read · Remember · Answer",
+      "storyTitle": "Maya's Morning Market Walk",
+      "storyParagraph1": "On a sunny morning, Maya wore her favorite blue scarf and walked to the local market. She carried a small cloth bag in her hand.",
+      "storyParagraph2": "At the fruit stall, Maya bought four sweet red apples. Near the flower shop, she met her kind neighbor, Sunita, and they shared a warm greeting. After their lovely chat, Maya walked back to her cozy home to rest.",
+      "readStoryPrompt": "Read this calm story carefully. When you are ready, tap below to start answering questions.",
+      "startQuestions": "START QUESTIONS",
+      "readStoryBtn": "Read Story",
+      "readStoryModalTitle": "The Story",
+      "closeStory": "Back to Question",
+      "levelEasy": "Easy",
+      "levelEasyBadge": "Level 1 · Easy",
+      "levelEasyDesc": "4 questions · Core details",
+      "levelMedium": "Medium",
+      "levelMediumBadge": "Level 2 · Medium",
+      "levelMediumDesc": "3 questions · Descriptive details",
+      "levelHard": "Hard",
+      "levelHardBadge": "Level 3 · Hard",
+      "levelHardDesc": "2 questions · Deep recall",
+      "questionProgress": "Question %{current} of %{total}",
+      "tierProgress": "Question %{current} of %{total} (%{tier})",
+      "difficultyHeader": "Difficulty: %{level}",
+      "scoreLabel": "Score: %{score}",
+      "correctTitle": "That’s right!",
+      "correctSub": "Wonderful memory! You got it right.",
+      "incorrectTitle": "Let’s try again.",
+      "incorrectSub": "Take your time. Pick the best answer.",
+      "nextQuestion": "NEXT QUESTION",
+      "unlockedMediumTitle": "Level 1 Complete!",
+      "unlockedMediumSub": "You answered all 4 Easy questions correctly! Medium difficulty is now unlocked.",
+      "continueMedium": "CONTINUE TO MEDIUM",
+      "unlockedHardTitle": "Level 2 Complete!",
+      "unlockedHardSub": "You answered all 3 Medium questions correctly! Hard difficulty is now unlocked.",
+      "continueHard": "CONTINUE TO HARD",
+      "completionTitle": "Game Complete!",
+      "completionSub": "Congratulations! You remembered all the story details wonderfully.",
+      "finalScore": "Final Score: %{score} / %{total}",
+      "playAgain": "PLAY AGAIN",
+      "backToGames": "Back to Games",
+      "lockedLevelMessage": "Complete %{prevLevel} questions to unlock this level.",
+      "questions": {
+        "q1": {
+          "text": "Who went to the local market?",
+          "choice0": "Maya",
+          "choice1": "Sunita",
+          "choice2": "Priya",
+          "explanation": "Maya went to the local market."
+        },
+        "q2": {
+          "text": "What fruit did Maya buy at the market?",
+          "choice0": "Bananas",
+          "choice1": "Sweet red apples",
+          "choice2": "Oranges",
+          "explanation": "Maya bought sweet red apples at the fruit stall."
+        },
+        "q3": {
+          "text": "Whom did Maya meet near the flower shop?",
+          "choice0": "Her neighbor Sunita",
+          "choice1": "A teacher",
+          "choice2": "A shopkeeper",
+          "explanation": "Maya met her kind neighbor Sunita."
+        },
+        "q4": {
+          "text": "Where did Maya return after shopping?",
+          "choice0": "To the park",
+          "choice1": "To the library",
+          "choice2": "To her cozy home",
+          "explanation": "Maya walked back to her cozy home to rest."
+        },
+        "q5": {
+          "text": "What color was Maya's favorite scarf?",
+          "choice0": "Blue",
+          "choice1": "Yellow",
+          "choice2": "Green",
+          "explanation": "Maya wore her favorite blue scarf."
+        },
+        "q6": {
+          "text": "What was Maya carrying in her hand?",
+          "choice0": "An umbrella",
+          "choice1": "A small cloth bag",
+          "choice2": "A newspaper",
+          "explanation": "Maya carried a small cloth bag in her hand."
+        },
+        "q7": {
+          "text": "How many apples did Maya buy?",
+          "choice0": "Two",
+          "choice1": "Four",
+          "choice2": "Six",
+          "explanation": "Maya bought four sweet red apples."
+        },
+        "q8": {
+          "text": "What kind of shop was near the place where Maya met Sunita?",
+          "choice0": "A bakery",
+          "choice1": "A bookstore",
+          "choice2": "A flower shop",
+          "explanation": "Maya met Sunita near the flower shop."
+        },
+        "q9": {
+          "text": "What was the weather like on Maya's walk?",
+          "choice0": "Rainy and windy",
+          "choice1": "A sunny morning",
+          "choice2": "Cold and foggy",
+          "explanation": "Maya walked to the market on a sunny morning."
+        }
+      },
+      "accessibility": {
+        "storyCard": "Story about Maya visiting the local market",
+        "questionCard": "Question %{number}: %{text}",
+        "choiceOption": "Choice %{letter}: %{text}",
+        "readStoryBtn": "Read the story text again",
+        "closeStoryBtn": "Close story and return to question",
+        "nextQuestionBtn": "Proceed to next question",
+        "playAgainBtn": "Restart and play again from the beginning",
+        "backBtn": "Return to the games selection menu"
+      }
     }
   },
   "ai": {

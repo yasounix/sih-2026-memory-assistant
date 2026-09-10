@@ -13,15 +13,18 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
+import { usePatient } from '../context/PatientContext';
+import { PerformanceTracker } from '../modules/performance';
 
 // Screen states
 const SCREENS = {
   WELCOME: 'welcome',
-  DIFFICULTY: 'difficulty',
   INSTRUCTIONS: 'instructions',
   PLAYING: 'playing',
   RECALL: 'recall',
   FEEDBACK: 'feedback',
+  LEVEL_UNLOCKED: 'level_unlocked',
+  COMPLETE: 'complete',
   SETTINGS: 'settings',
 };
 
@@ -406,12 +409,39 @@ function VoiceCaption({ text, enabled = true, contrast = 'normal', accessibility
 export default function DhopkhelGame({ onExit }) {
   const { theme, isDarkMode } = useTheme();
   const { t, currentLanguage } = useLanguage();
+  const { currentPatientId, patientId } = usePatient();
+  const activePlayerId = currentPatientId || patientId || 'P001';
 
   // Navigation screen
   const [screen, setScreen] = useState(SCREENS.WELCOME);
 
-  // Difficulty
+  // Difficulty (always starts at easy, dynamically unlocked & advanced via adaptive engine)
   const [selectedLevel, setSelectedLevel] = useState('easy');
+
+  // Unlocked difficulty levels (gated progression: starts with easy)
+  const [unlockedLevels, setUnlockedLevels] = useState({
+    easy: true,
+    medium: false,
+    hard: false,
+  });
+
+  // Current progress percentage towards tier mastery / promotion (0% - 100%)
+  const [tierProgressPercent, setTierProgressPercent] = useState(0);
+
+  // Unlocked level meta for milestone celebrations
+  const [unlockedTierInfo, setUnlockedTierInfo] = useState(null);
+
+  // Caregiver stats summary
+  const [caregiverStats, setCaregiverStats] = useState(null);
+
+  // Performance tracker instance
+  const trackerRef = useRef(null);
+  if (!trackerRef.current) {
+    trackerRef.current = new PerformanceTracker({
+      gameType: 'dhop_khel',
+      playerId: activePlayerId,
+    });
+  }
 
   // Accessibility settings state
   const [textSize, setTextSize] = useState('large'); // 'large' | 'extraLarge'
@@ -432,7 +462,7 @@ export default function DhopkhelGame({ onExit }) {
 
   const [userChoice, setUserChoice] = useState(null);
   const [isCorrect, setIsCorrect] = useState(false);
-  const [roundStats, setRoundStats] = useState({ roundsCompleted: 0 });
+  const [roundStats, setRoundStats] = useState({ roundsCompleted: 0, score: 0 });
 
   // Timers ref for safe cleanup
   const activeTimers = useRef([]);
@@ -448,10 +478,33 @@ export default function DhopkhelGame({ onExit }) {
   }, []);
 
   useEffect(() => {
+    let isMounted = true;
+
+    // Requirement: Game must always start at Easy difficulty whenever a new game begins.
+    // Ensure no stale Medium or Hard state is reused from prior sessions.
+    setSelectedLevel('easy');
+    setUnlockedLevels({ easy: true, medium: false, hard: false });
+    setTierProgressPercent(0);
+    setRoundStats({ roundsCompleted: 0, score: 0 });
+
+    trackerRef.current
+      .initialize({ playerId: activePlayerId, initialDifficulty: 'easy' })
+      .then(() => {
+        if (isMounted) {
+          setSelectedLevel('easy');
+          setCaregiverStats(trackerRef.current.getCaregiverProfile());
+        }
+      })
+      .catch((err) => {
+        console.warn('PerformanceTracker initialize notice:', err);
+      });
+
     return () => {
+      isMounted = false;
       clearTimers();
+      trackerRef.current?.endSession();
     };
-  }, [clearTimers]);
+  }, [activePlayerId, clearTimers]);
 
   // Reactive localized levels
   const levels = useMemo(() => {
@@ -582,6 +635,14 @@ export default function DhopkhelGame({ onExit }) {
   const handleStartRound = useCallback(
     (levelKey = selectedLevel) => {
       clearTimers();
+
+      // Track round initialization
+      trackerRef.current?.startRound({
+        difficulty: levelKey,
+        sequenceLength: LEVEL_CONFIGS[levelKey]?.moves || 2,
+        metadata: { animMultiplier, contrast },
+      });
+
       const seq = generateSequence(levelKey);
       setMoveSequence(seq);
       setStepIndex(0);
@@ -649,6 +710,8 @@ export default function DhopkhelGame({ onExit }) {
           const recallTimer = setTimeout(() => {
             setScreen(SCREENS.RECALL);
             speakText('voiceWhoHasDhop');
+            // Record recall start for response-time calculation
+            trackerRef.current?.recordRecallStart();
           }, Math.round(700 * animMultiplier));
           activeTimers.current.push(recallTimer);
         });
@@ -666,6 +729,7 @@ export default function DhopkhelGame({ onExit }) {
       animMultiplier,
       players,
       speakText,
+      contrast,
     ]
   );
 
@@ -678,15 +742,71 @@ export default function DhopkhelGame({ onExit }) {
       setIsCorrect(correct);
 
       if (correct) {
-        setRoundStats((prev) => ({ roundsCompleted: prev.roundsCompleted + 1 }));
+        setRoundStats((prev) => ({
+          roundsCompleted: prev.roundsCompleted + 1,
+          score: (prev.score || 0) + 1,
+        }));
         speakText('voiceWellDone');
       } else {
         speakText('voiceTryAgain');
       }
 
-      setScreen(SCREENS.FEEDBACK);
+      // Track answer & complete round
+      if (trackerRef.current) {
+        trackerRef.current.recordAnswer({
+          chosenPlayerId,
+          correctPlayerId: finalHolder,
+          isCorrect: correct,
+        });
+
+        trackerRef.current
+          .completeRound()
+          .then((res) => {
+            if (res && res.decision) {
+              const rollingScore =
+                typeof res.decision.rollingScore === 'number'
+                  ? res.decision.rollingScore
+                  : correct
+                  ? 1.0
+                  : 0.0;
+              const progressPct = Math.min(100, Math.max(0, Math.round(rollingScore * 100)));
+              setTierProgressPercent(progressPct);
+
+              // Requirement: Progress through the game automatically according to percentage-based rules.
+              // When required percentage is reached, automatically unlock and enter next difficulty.
+              if (res.decision.decision === 'promote' && res.decision.nextDifficulty) {
+                const nextDiff = res.decision.nextDifficulty;
+                setUnlockedLevels((prev) => ({ ...prev, [nextDiff]: true }));
+                setSelectedLevel(nextDiff);
+                setUnlockedTierInfo(nextDiff);
+                setScreen(SCREENS.LEVEL_UNLOCKED);
+                setCaregiverStats(trackerRef.current.getCaregiverProfile());
+                return;
+              } else if (res.decision.decision === 'demote' && res.decision.nextDifficulty) {
+                setSelectedLevel(res.decision.nextDifficulty);
+              } else if (
+                selectedLevel === 'hard' &&
+                correct &&
+                roundStats.roundsCompleted >= 6 &&
+                rollingScore >= 0.85
+              ) {
+                setScreen(SCREENS.COMPLETE);
+                setCaregiverStats(trackerRef.current.getCaregiverProfile());
+                return;
+              }
+            }
+            setCaregiverStats(trackerRef.current.getCaregiverProfile());
+            setScreen(SCREENS.FEEDBACK);
+          })
+          .catch((e) => {
+            console.warn('completeRound notice:', e);
+            setScreen(SCREENS.FEEDBACK);
+          });
+      } else {
+        setScreen(SCREENS.FEEDBACK);
+      }
     },
-    [moveSequence, speakText]
+    [moveSequence, speakText, selectedLevel, roundStats.roundsCompleted]
   );
 
   // Replay current round with fresh sequence
@@ -694,24 +814,46 @@ export default function DhopkhelGame({ onExit }) {
     handleStartRound(selectedLevel);
   }, [handleStartRound, selectedLevel]);
 
-  // Back button handler
+  // Restart the whole game: strictly reset to Easy mode, zero progress
+  const handleRestart = useCallback(() => {
+    clearTimers();
+    setSelectedLevel('easy');
+    setUnlockedLevels({ easy: true, medium: false, hard: false });
+    setTierProgressPercent(0);
+    setRoundStats({ roundsCompleted: 0, score: 0 });
+    setUserChoice(null);
+    setIsCorrect(false);
+    setUnlockedTierInfo(null);
+    trackerRef.current?.startSession({ playerId: activePlayerId, initialDifficulty: 'easy' });
+    setCaregiverStats(trackerRef.current.getCaregiverProfile());
+    setScreen(SCREENS.WELCOME);
+    speakText('voiceWelcome');
+  }, [clearTimers, activePlayerId, speakText]);
+
+  // Back button handler (no manual difficulty screen in navigation)
   const handleHeaderBack = useCallback(() => {
     clearTimers();
+    if (screen === SCREENS.PLAYING || screen === SCREENS.RECALL) {
+      trackerRef.current?.abandonRound();
+    }
+
     if (screen === SCREENS.WELCOME) {
+      trackerRef.current?.endSession();
       if (onExit) onExit();
-    } else if (screen === SCREENS.DIFFICULTY) {
+    } else if (
+      screen === SCREENS.INSTRUCTIONS ||
+      screen === SCREENS.PLAYING ||
+      screen === SCREENS.RECALL ||
+      screen === SCREENS.FEEDBACK
+    ) {
       setScreen(SCREENS.WELCOME);
       speakText('voiceWelcome');
-    } else if (screen === SCREENS.INSTRUCTIONS) {
-      setScreen(SCREENS.DIFFICULTY);
-    } else if (screen === SCREENS.PLAYING || screen === SCREENS.RECALL) {
-      setScreen(SCREENS.DIFFICULTY);
-    } else if (screen === SCREENS.FEEDBACK) {
-      setScreen(SCREENS.DIFFICULTY);
+    } else if (screen === SCREENS.LEVEL_UNLOCKED || screen === SCREENS.COMPLETE) {
+      handleRestart();
     } else if (screen === SCREENS.SETTINGS) {
       setScreen(SCREENS.WELCOME);
     }
-  }, [screen, onExit, clearTimers, speakText]);
+  }, [screen, onExit, clearTimers, speakText, handleRestart]);
 
   /* -----------------------------------------------------------
      Screen 1: WELCOME
@@ -802,8 +944,9 @@ export default function DhopkhelGame({ onExit }) {
           },
         ]}
         onPress={() => {
-          setScreen(SCREENS.DIFFICULTY);
-          speakText('voiceChooseDifficulty');
+          setSelectedLevel('easy');
+          setScreen(SCREENS.INSTRUCTIONS);
+          speakText('voiceInstructions');
         }}
         accessibilityRole="button"
         accessibilityLabel={t('games.dhopkhel.accessibilityPlay')}
@@ -843,123 +986,281 @@ export default function DhopkhelGame({ onExit }) {
   );
 
   /* -----------------------------------------------------------
-     Screen 2: DIFFICULTY SELECTION
+     Re-usable Progress & Mastery Header Bar
   ----------------------------------------------------------- */
-  const renderDifficulty = () => (
-    <ScrollView contentContainerStyle={styles.scrollContent}>
-      <Text style={[styles.sectionHeading, { color: colors.text, fontSize: 26 * fontScale }]}>
-        {t('games.dhopkhel.selectDifficulty')}
-      </Text>
-      <Text style={[styles.sectionSubtitle, { color: colors.subText, fontSize: 16 * fontScale }]}>
-        {t('games.dhopkhel.selectDifficultySub')}
-      </Text>
-
-      {Object.values(levels).map((lvl) => {
-        const isSelected = selectedLevel === lvl.id;
-        return (
-          <TouchableOpacity
-            key={lvl.id}
-            style={[
-              styles.levelCard,
-              {
-                backgroundColor: isSelected
-                  ? isDarkMode
-                    ? '#064E3B'
-                    : '#D1FAE5'
-                  : colors.cardBg,
-                borderColor: isSelected ? colors.primary : colors.cardBorder,
-                borderWidth: isSelected ? 3 : 1.5,
-                paddingVertical: 18 * btnScale,
-              },
-            ]}
-            onPress={() => {
-              setSelectedLevel(lvl.id);
-            }}
-            accessibilityRole="button"
-            accessibilityLabel={`${lvl.name}, ${lvl.badge}. ${lvl.description}`}
-          >
-            <View style={styles.levelCardHeader}>
-              <View>
-                <Text
-                  style={[
-                    styles.levelBadgeText,
-                    { color: colors.primary, fontSize: 13 * fontScale },
-                  ]}
-                >
-                  {lvl.badge}
-                </Text>
-                <Text
-                  style={[
-                    styles.levelTitleText,
-                    { color: colors.text, fontSize: 22 * fontScale },
-                  ]}
-                >
-                  {lvl.name}
-                </Text>
-              </View>
-
-              {/* Step dots visual */}
-              <View style={styles.dotsRow}>
-                {Array.from({ length: lvl.dots }).map((_, idx) => (
-                  <View
-                    key={idx}
-                    style={[
-                      styles.dot,
-                      {
-                        backgroundColor: isSelected ? colors.primary : colors.subText,
-                        width: 10 * fontScale,
-                        height: 10 * fontScale,
-                        borderRadius: (10 * fontScale) / 2,
-                      },
-                    ]}
-                  />
-                ))}
-              </View>
-            </View>
-
-            <Text
-              style={[
-                styles.levelSubtitleText,
-                { color: colors.subText, fontSize: 15 * fontScale, marginTop: 6 },
-              ]}
-            >
-              {lvl.subtitle}
-            </Text>
-            <Text
-              style={[
-                styles.levelDescText,
-                { color: colors.subText, fontSize: 13 * fontScale, marginTop: 4 },
-              ]}
-            >
-              {lvl.description}
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
-
-      <TouchableOpacity
+  const renderProgressHeader = () => {
+    const activeLevelObj = levels[selectedLevel] || levels.easy;
+    return (
+      <View
         style={[
-          styles.largePrimaryBtn,
+          styles.progressHeaderCard,
           {
-            backgroundColor: colors.primary,
-            marginTop: 20,
-            paddingVertical: 18 * btnScale,
+            backgroundColor: colors.cardBg,
+            borderColor: colors.cardBorder,
           },
         ]}
-        onPress={() => {
-          setScreen(SCREENS.INSTRUCTIONS);
-          speakText('voiceInstructions');
-        }}
-        accessibilityRole="button"
-        accessibilityLabel={t('games.dhopkhel.accessibilityContinue')}
       >
-        <Text style={[styles.largePrimaryBtnText, { color: colors.btnText, fontSize: 20 * fontScale }]}>
-          {t('games.dhopkhel.continue')}
-        </Text>
-        <Ionicons name="arrow-forward" size={24} color={colors.btnText} style={{ marginLeft: 8 }} />
-      </TouchableOpacity>
-    </ScrollView>
-  );
+        <View style={styles.progressTopRow}>
+          {/* Level Pill */}
+          <View
+            style={[
+              styles.progressLevelPill,
+              {
+                backgroundColor:
+                  selectedLevel === 'easy'
+                    ? isDarkMode
+                      ? '#064E3B'
+                      : '#D1FAE5'
+                    : selectedLevel === 'medium'
+                    ? isDarkMode
+                      ? '#1E3A8A'
+                      : '#DBEAFE'
+                    : isDarkMode
+                    ? '#78350F'
+                    : '#FEF3C7',
+              },
+            ]}
+          >
+            <Ionicons
+              name={selectedLevel === 'hard' ? 'trophy' : selectedLevel === 'medium' ? 'ribbon' : 'leaf'}
+              size={15}
+              color={
+                selectedLevel === 'easy'
+                  ? '#059669'
+                  : selectedLevel === 'medium'
+                  ? '#2563EB'
+                  : '#D97706'
+              }
+              style={{ marginRight: 4 }}
+            />
+            <Text
+              style={[
+                styles.progressLevelPillText,
+                {
+                  color:
+                    selectedLevel === 'easy'
+                      ? '#059669'
+                      : selectedLevel === 'medium'
+                      ? '#2563EB'
+                      : '#D97706',
+                  fontSize: 13 * fontScale,
+                },
+              ]}
+            >
+              {activeLevelObj.badge}
+            </Text>
+          </View>
+
+          {/* Progress Percentage Display */}
+          <View style={styles.progressPercentContainer}>
+            <Text style={[styles.progressPercentLabel, { color: colors.subText, fontSize: 13 * fontScale }]}>
+              {t('games.dhopkhel.progress', { percent: tierProgressPercent })}
+            </Text>
+          </View>
+
+          {/* Star / Score Counter */}
+          <View
+            style={[
+              styles.progressScorePill,
+              { backgroundColor: isDarkMode ? '#334155' : '#F1F5F9' },
+            ]}
+          >
+            <Ionicons name="star" size={14} color="#EAB308" style={{ marginRight: 4 }} />
+            <Text style={[styles.progressScoreText, { color: colors.text, fontSize: 13 * fontScale }]}>
+              {roundStats.score || 0}
+            </Text>
+          </View>
+        </View>
+
+        {/* Visual Progress Bar Track */}
+        <View
+          style={[
+            styles.progressBarTrack,
+            { backgroundColor: isDarkMode ? '#334155' : '#E2E8F0' },
+          ]}
+        >
+          <View
+            style={[
+              styles.progressBarFill,
+              {
+                width: `${Math.max(6, Math.min(100, tierProgressPercent))}%`,
+                backgroundColor: colors.primary,
+              },
+            ]}
+          />
+        </View>
+      </View>
+    );
+  };
+
+  /* -----------------------------------------------------------
+     Screen 2: LEVEL UNLOCKED CELEBRATION
+  ----------------------------------------------------------- */
+  const renderLevelUnlocked = () => {
+    const nextLevelObj = levels[selectedLevel] || levels.medium;
+    return (
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View
+          style={[
+            styles.milestoneCard,
+            {
+              backgroundColor: colors.cardBg,
+              borderColor: colors.primary,
+            },
+          ]}
+        >
+          <View
+            style={[
+              styles.milestoneIconCircle,
+              { backgroundColor: isDarkMode ? '#064E3B' : '#D1FAE5' },
+            ]}
+          >
+            <Ionicons name="sparkles" size={56} color={colors.primary} />
+          </View>
+
+          <Text style={[styles.milestoneTitle, { color: colors.primary, fontSize: 28 * fontScale }]}>
+            {t('games.dhopkhel.levelUnlockedTitle')}
+          </Text>
+
+          <Text style={[styles.milestoneSub, { color: colors.text, fontSize: 18 * fontScale }]}>
+            {t('games.dhopkhel.levelUnlockedSub', { level: nextLevelObj.badge })}
+          </Text>
+
+          <View
+            style={[
+              styles.unlockedLevelPreview,
+              {
+                backgroundColor: isDarkMode ? '#0B1320' : '#F0FDF4',
+                borderColor: colors.cardBorder,
+              },
+            ]}
+          >
+            <Text style={[styles.unlockedLevelName, { color: colors.primary, fontSize: 20 * fontScale }]}>
+              {nextLevelObj.name}
+            </Text>
+            <Text style={[styles.unlockedLevelDetail, { color: colors.subText, fontSize: 14 * fontScale }]}>
+              {nextLevelObj.subtitle} · {nextLevelObj.description}
+            </Text>
+          </View>
+        </View>
+
+        <TouchableOpacity
+          style={[
+            styles.largePrimaryBtn,
+            {
+              backgroundColor: colors.primary,
+              marginTop: 20,
+              paddingVertical: 18 * btnScale,
+            },
+          ]}
+          onPress={() => {
+            handleStartRound(selectedLevel);
+          }}
+          accessibilityRole="button"
+          accessibilityLabel={t('games.dhopkhel.continueNextLevel', { level: nextLevelObj.badge })}
+        >
+          <Text style={[styles.largePrimaryBtnText, { color: colors.btnText, fontSize: 20 * fontScale }]}>
+            {t('games.dhopkhel.continueNextLevel', { level: nextLevelObj.badge })}
+          </Text>
+          <Ionicons name="arrow-forward" size={24} color={colors.btnText} style={{ marginLeft: 8 }} />
+        </TouchableOpacity>
+      </ScrollView>
+    );
+  };
+
+  /* -----------------------------------------------------------
+     Screen: GAME COMPLETE MASTERY
+  ----------------------------------------------------------- */
+  const renderComplete = () => {
+    return (
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View
+          style={[
+            styles.milestoneCard,
+            {
+              backgroundColor: colors.cardBg,
+              borderColor: colors.accent,
+            },
+          ]}
+        >
+          <View
+            style={[
+              styles.milestoneIconCircle,
+              { backgroundColor: isDarkMode ? '#78350F' : '#FEF3C7' },
+            ]}
+          >
+            <Ionicons name="trophy" size={56} color={colors.accent} />
+          </View>
+
+          <Text style={[styles.milestoneTitle, { color: colors.accent, fontSize: 28 * fontScale }]}>
+            {t('games.dhopkhel.gameCompleteTitle')}
+          </Text>
+
+          <Text style={[styles.milestoneSub, { color: colors.text, fontSize: 18 * fontScale }]}>
+            {t('games.dhopkhel.gameCompleteSub')}
+          </Text>
+
+          <View
+            style={[
+              styles.unlockedLevelPreview,
+              {
+                backgroundColor: isDarkMode ? '#0B1320' : '#FFFBEB',
+                borderColor: colors.cardBorder,
+              },
+            ]}
+          >
+            <Text style={[styles.unlockedLevelName, { color: colors.text, fontSize: 18 * fontScale }]}>
+              Total Rounds: {roundStats.roundsCompleted}
+            </Text>
+            <Text style={[styles.unlockedLevelDetail, { color: colors.subText, fontSize: 14 * fontScale }]}>
+              Final Score: {roundStats.score || 0}
+            </Text>
+          </View>
+        </View>
+
+        <TouchableOpacity
+          style={[
+            styles.largePrimaryBtn,
+            {
+              backgroundColor: colors.primary,
+              marginTop: 20,
+              paddingVertical: 18 * btnScale,
+            },
+          ]}
+          onPress={handleRestart}
+          accessibilityRole="button"
+          accessibilityLabel={t('games.dhopkhel.playAgain')}
+        >
+          <Ionicons name="refresh" size={24} color={colors.btnText} style={{ marginRight: 8 }} />
+          <Text style={[styles.largePrimaryBtnText, { color: colors.btnText, fontSize: 20 * fontScale }]}>
+            {t('games.dhopkhel.playAgain')}
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.secondaryBtn,
+            {
+              backgroundColor: colors.cardBg,
+              borderColor: colors.cardBorder,
+              marginTop: 12,
+              paddingVertical: 14 * btnScale,
+            },
+          ]}
+          onPress={() => {
+            if (onExit) onExit();
+          }}
+          accessibilityRole="button"
+          accessibilityLabel={t('games.dhopkhel.backToGames')}
+        >
+          <Ionicons name="arrow-back" size={20} color={colors.text} style={{ marginRight: 8 }} />
+          <Text style={[styles.secondaryBtnText, { color: colors.text, fontSize: 16 * fontScale }]}>
+            {t('games.dhopkhel.backToGames')}
+          </Text>
+        </TouchableOpacity>
+      </ScrollView>
+    );
+  };
 
   /* -----------------------------------------------------------
      Screen 3: INSTRUCTIONS
@@ -1070,6 +1371,11 @@ export default function DhopkhelGame({ onExit }) {
         {/* Landscape scenery */}
         <AssamLandscape contrast={contrast} isDarkMode={isDarkMode} />
 
+        {/* Progress & Tier Indicator */}
+        <View style={{ paddingHorizontal: 16, paddingTop: 10 }}>
+          {renderProgressHeader()}
+        </View>
+
         {/* Status card at top */}
         <View
           style={[
@@ -1161,6 +1467,9 @@ export default function DhopkhelGame({ onExit }) {
   ----------------------------------------------------------- */
   const renderRecall = () => (
     <ScrollView contentContainerStyle={styles.scrollContent}>
+      {/* Progress & Tier Indicator */}
+      {renderProgressHeader()}
+
       {/* Header prompt */}
       <View
         style={[
@@ -1246,6 +1555,9 @@ export default function DhopkhelGame({ onExit }) {
 
     return (
       <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* Progress & Tier Indicator */}
+        {renderProgressHeader()}
+
         <View
           style={[
             styles.feedbackCard,
@@ -1348,6 +1660,7 @@ export default function DhopkhelGame({ onExit }) {
           </Text>
         </TouchableOpacity>
 
+        {/* Restart Game button: resets to Easy mode */}
         <TouchableOpacity
           style={[
             styles.secondaryBtn,
@@ -1358,15 +1671,13 @@ export default function DhopkhelGame({ onExit }) {
               paddingVertical: 14 * btnScale,
             },
           ]}
-          onPress={() => {
-            setScreen(SCREENS.DIFFICULTY);
-          }}
+          onPress={handleRestart}
           accessibilityRole="button"
-          accessibilityLabel={t('games.dhopkhel.accessibilityChangeLevel')}
+          accessibilityLabel={t('games.dhopkhel.restartGame')}
         >
-          <Ionicons name="options-outline" size={20} color={colors.text} style={{ marginRight: 8 }} />
+          <Ionicons name="refresh-outline" size={20} color={colors.text} style={{ marginRight: 8 }} />
           <Text style={[styles.secondaryBtnText, { color: colors.text, fontSize: 16 * fontScale }]}>
-            {t('games.dhopkhel.changeLevel')}
+            {t('games.dhopkhel.restartGame')}
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -1652,6 +1963,68 @@ export default function DhopkhelGame({ onExit }) {
         </Text>
       </View>
 
+      {/* Private Caregiver Performance & Analytics Section (Requirement 25) */}
+      <View
+        style={[
+          styles.caregiverCard,
+          {
+            backgroundColor: colors.cardBg,
+            borderColor: colors.cardBorder,
+          },
+        ]}
+      >
+        <View style={styles.caregiverHeaderRow}>
+          <Ionicons name="stats-chart" size={20} color={colors.primary} style={{ marginRight: 8 }} />
+          <Text style={[styles.caregiverTitle, { color: colors.text, fontSize: 16 * fontScale }]}>
+            Performance & Analytics Profile
+          </Text>
+        </View>
+        <Text style={[styles.caregiverSub, { color: colors.subText, fontSize: 12 * fontScale }]}>
+          Private data for caregivers & wellness monitoring (hidden from player)
+        </Text>
+
+        <View style={styles.caregiverMetricsGrid}>
+          <View style={[styles.caregiverMetricBox, { backgroundColor: isDarkMode ? '#1E293B' : '#F8FAFC' }]}>
+            <Text style={[styles.caregiverMetricVal, { color: colors.primary }]}>
+              {caregiverStats && caregiverStats.roundsPlayed > 0 ? `${caregiverStats.accuracy}%` : '—'}
+            </Text>
+            <Text style={[styles.caregiverMetricLabel, { color: colors.subText }]}>Accuracy</Text>
+          </View>
+
+          <View style={[styles.caregiverMetricBox, { backgroundColor: isDarkMode ? '#1E293B' : '#F8FAFC' }]}>
+            <Text style={[styles.caregiverMetricVal, { color: colors.text }]}>
+              {caregiverStats && caregiverStats.averageResponseTimeSec > 0
+                ? `${caregiverStats.averageResponseTimeSec}s`
+                : '—'}
+            </Text>
+            <Text style={[styles.caregiverMetricLabel, { color: colors.subText }]}>Avg Response</Text>
+          </View>
+
+          <View style={[styles.caregiverMetricBox, { backgroundColor: isDarkMode ? '#1E293B' : '#F8FAFC' }]}>
+            <Text style={[styles.caregiverMetricVal, { color: colors.text }]}>
+              {caregiverStats && caregiverStats.roundsPlayed > 0 ? `${caregiverStats.consistencyScore}%` : '—'}
+            </Text>
+            <Text style={[styles.caregiverMetricLabel, { color: colors.subText }]}>Consistency</Text>
+          </View>
+
+          <View style={[styles.caregiverMetricBox, { backgroundColor: isDarkMode ? '#1E293B' : '#F8FAFC' }]}>
+            <Text style={[styles.caregiverMetricVal, { color: colors.primary, textTransform: 'capitalize' }]}>
+              {caregiverStats?.currentDifficulty || selectedLevel}
+            </Text>
+            <Text style={[styles.caregiverMetricLabel, { color: colors.subText }]}>Difficulty</Text>
+          </View>
+        </View>
+
+        <View style={styles.caregiverTrendRow}>
+          <Text style={[styles.caregiverTrendLabel, { color: colors.subText, fontSize: 13 * fontScale }]}>
+            Rounds Played: <Text style={{ color: colors.text, fontWeight: '700' }}>{caregiverStats?.roundsPlayed || 0}</Text>
+          </Text>
+          <Text style={[styles.caregiverTrendLabel, { color: colors.subText, fontSize: 13 * fontScale }]}>
+            Trend: <Text style={{ color: colors.primary, fontWeight: '700' }}>{caregiverStats?.trend || 'Stable'}</Text>
+          </Text>
+        </View>
+      </View>
+
       {/* Done Button */}
       <TouchableOpacity
         style={[
@@ -1723,11 +2096,12 @@ export default function DhopkhelGame({ onExit }) {
 
       {/* Render Active Screen */}
       {screen === SCREENS.WELCOME && renderWelcome()}
-      {screen === SCREENS.DIFFICULTY && renderDifficulty()}
       {screen === SCREENS.INSTRUCTIONS && renderInstructions()}
       {screen === SCREENS.PLAYING && renderPlaying()}
       {screen === SCREENS.RECALL && renderRecall()}
       {screen === SCREENS.FEEDBACK && renderFeedback()}
+      {screen === SCREENS.LEVEL_UNLOCKED && renderLevelUnlocked()}
+      {screen === SCREENS.COMPLETE && renderComplete()}
       {screen === SCREENS.SETTINGS && renderSettings()}
     </SafeAreaView>
   );
@@ -2317,5 +2691,163 @@ const styles = StyleSheet.create({
   disclaimerCardText: {
     lineHeight: 19,
     fontStyle: 'italic',
+  },
+  caregiverCard: {
+    width: '100%',
+    borderRadius: 16,
+    borderWidth: 1.5,
+    padding: 16,
+    marginBottom: 14,
+  },
+  caregiverHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  caregiverTitle: {
+    fontWeight: '800',
+  },
+  caregiverSub: {
+    marginBottom: 14,
+    lineHeight: 16,
+  },
+  caregiverMetricsGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  caregiverMetricBox: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginHorizontal: 3,
+  },
+  caregiverMetricVal: {
+    fontSize: 17,
+    fontWeight: '800',
+    marginBottom: 2,
+  },
+  caregiverMetricLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  caregiverTrendRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.06)',
+  },
+  caregiverTrendLabel: {
+    fontWeight: '500',
+  },
+
+  // Progress Header Card
+  progressHeaderCard: {
+    width: '100%',
+    borderRadius: 16,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginBottom: 12,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  progressTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  progressLevelPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+  },
+  progressLevelPillText: {
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  progressPercentContainer: {
+    flex: 1,
+    alignItems: 'center',
+    paddingHorizontal: 8,
+  },
+  progressPercentLabel: {
+    fontWeight: '700',
+  },
+  progressScorePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  progressScoreText: {
+    fontWeight: '800',
+  },
+  progressBarTrack: {
+    width: '100%',
+    height: 8,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+
+  // Milestone / Level Unlocked Cards
+  milestoneCard: {
+    width: '100%',
+    borderRadius: 22,
+    borderWidth: 2,
+    padding: 24,
+    alignItems: 'center',
+    marginBottom: 16,
+    elevation: 3,
+  },
+  milestoneIconCircle: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  milestoneTitle: {
+    fontWeight: '900',
+    letterSpacing: 0.5,
+    textAlign: 'center',
+    marginBottom: 6,
+  },
+  milestoneSub: {
+    textAlign: 'center',
+    lineHeight: 24,
+    fontWeight: '600',
+    marginBottom: 18,
+  },
+  unlockedLevelPreview: {
+    width: '100%',
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 16,
+    alignItems: 'center',
+  },
+  unlockedLevelName: {
+    fontWeight: '800',
+    marginBottom: 4,
+  },
+  unlockedLevelDetail: {
+    textAlign: 'center',
+    lineHeight: 18,
   },
 });
