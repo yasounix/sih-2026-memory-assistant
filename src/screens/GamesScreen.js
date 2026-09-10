@@ -7,6 +7,7 @@ import SupermarketGame from '../games/SupermarketGame';
 import SortingGame from '../games/SortingGame';
 import MemoryPathGame from '../games/MemoryPathGame';
 import DhopkhelGame from '../games/DhopkhelGame';
+import NortheastMemoryGame from '../games/NortheastMemoryGame';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useNavigation } from '@react-navigation/native';
@@ -28,6 +29,21 @@ export default function GamesScreen() {
           <Text style={{ fontSize: 16, color: theme.subText, marginBottom: 20 }}>
             Select an exercise to help maintain cognitive function and memory.
           </Text>
+
+          {/* North East Photo Memory Game */}
+          <TouchableOpacity
+            style={[styles.menuCard, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder }]}
+            onPress={() => setSelectedGame('northeast')}
+          >
+            <View style={[styles.iconContainer, { backgroundColor: isDarkMode ? '#064E3B' : '#D1FAE5' }]}>
+              <Ionicons name="image" size={24} color="#059669" />
+            </View>
+            <View style={styles.cardTextContainer}>
+              <Text style={[styles.menuCardTitle, { color: theme.text }]}>🏞️ North East Memory</Text>
+              <Text style={[styles.menuCardSub, { color: theme.subText }]}>Observe scenic photos & recall details</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={theme.subText} />
+          </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.menuCard, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder }]}
@@ -143,6 +159,13 @@ export default function GamesScreen() {
       </View>
       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
         <View style={{ flex: 1, padding: 10 }}>
+          {selectedGame === 'northeast' && (
+            <NortheastMemoryGame
+              onFinish={() => setSelectedGame(null)}
+              onComplete={() => setSelectedGame(null)}
+              onGameOver={() => {}}
+            />
+          )}
           {selectedGame === 'sequence' && <SequenceGame />}
           {selectedGame === 'memory' && <MemoryMatchGame />}
           {selectedGame === 'supermarket' && <SupermarketGame />}
@@ -153,7 +176,6 @@ export default function GamesScreen() {
     </SafeAreaView>
   );
 }
-
 
 const styles = StyleSheet.create({
   menuCard: {
