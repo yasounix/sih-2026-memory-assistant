@@ -149,6 +149,19 @@ export default function GamesScreen() {
     );
   }
 
+  if (selectedGame === 'northeast') {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
+        <NortheastMemoryGame
+          onFinish={() => setSelectedGame(null)}
+          onExit={() => setSelectedGame(null)}
+          onComplete={(summary) => console.log('North East Memory completed:', summary)}
+          onGameOver={(summary) => console.log('North East Memory game over:', summary)}
+        />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
       <View style={[styles.headerBar, { backgroundColor: theme.cardBackground, borderBottomColor: theme.cardBorder }]}>
@@ -159,13 +172,6 @@ export default function GamesScreen() {
       </View>
       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
         <View style={{ flex: 1, padding: 10 }}>
-          {selectedGame === 'northeast' && (
-            <NortheastMemoryGame
-              onFinish={() => setSelectedGame(null)}
-              onComplete={() => setSelectedGame(null)}
-              onGameOver={() => {}}
-            />
-          )}
           {selectedGame === 'sequence' && <SequenceGame />}
           {selectedGame === 'memory' && <MemoryMatchGame />}
           {selectedGame === 'supermarket' && <SupermarketGame />}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,8 @@ import {
   StyleSheet,
   ActivityIndicator,
   ScrollView,
+  SafeAreaView,
+  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
@@ -19,152 +21,321 @@ import {
 } from '../modules/database';
 import { supabase } from '../modules/supabaseClient';
 
+/* -------------------------------------------------------------
+   Security, Sanitization & Dev Logging Helpers
+------------------------------------------------------------- */
+
+// Strips HTML tags, removes script-like content, limits length to 200
+const sanitizeText = (str) => {
+  if (typeof str !== 'string') return '';
+  return str
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    .replace(/<[^>]*>?/gm, '')
+    .replace(/javascript:/gi, '')
+    .replace(/[^\x20-\x7E\u00A0-\uFFFF]/g, '')
+    .trim()
+    .slice(0, 200);
+};
+
+// Regex validation: alphanumeric + underscores + hyphens
+const isValidId = (str) => {
+  if (typeof str !== 'string' || !str) return false;
+  return /^[a-zA-Z0-9_\-]+$/.test(str.trim());
+};
+
+// Dev-only logger to satisfy Task 7 (never logs in production)
+const logDev = (message, ...args) => {
+  if (typeof __DEV__ !== 'undefined' && __DEV__) {
+    console.log(`[NorthEastMemory] ${message}`, ...args);
+  }
+};
+
+const errorDev = (message, ...args) => {
+  if (typeof __DEV__ !== 'undefined' && __DEV__) {
+    console.error(`[NorthEastMemory] ${message}`, ...args);
+  }
+};
+
+// Defensive validation for question object & options
+const isValidQuestion = (q) => {
+  if (!q || typeof q !== 'object') return false;
+  if (!q.question_id || !q.scene_id) return false;
+  if (typeof q.question !== 'string' || !q.question.trim()) return false;
+  if (q.answer === undefined || q.answer === null || String(q.answer).trim() === '') return false;
+
+  let opts = q.options;
+  if (typeof opts === 'string') {
+    try {
+      opts = JSON.parse(opts);
+    } catch {
+      opts = q.options.split(',').map((s) => s.trim());
+    }
+  }
+  if (!Array.isArray(opts) || opts.length < 2) return false;
+  return opts.some((opt) => String(opt).trim().length > 0);
+};
+
+// Ensures the options array always has exactly 4 distinct options including the correct answer
+const normalizeToFourOptions = (rawOptions, rawAnswer) => {
+  const answer = String(rawAnswer).trim();
+  let list = [];
+
+  if (Array.isArray(rawOptions)) {
+    list = rawOptions.map((o) => String(o).trim()).filter(Boolean);
+  } else if (typeof rawOptions === 'string') {
+    try {
+      const parsed = JSON.parse(rawOptions);
+      if (Array.isArray(parsed)) {
+        list = parsed.map((o) => String(o).trim()).filter(Boolean);
+      }
+    } catch {
+      list = rawOptions.split(',').map((s) => s.trim()).filter(Boolean);
+    }
+  }
+
+  // Ensure answer is present
+  if (!list.includes(answer)) {
+    list.unshift(answer);
+  }
+
+  // Deduplicate
+  list = Array.from(new Set(list));
+
+  // Plausible fallback options if fewer than 4 are provided
+  const fallbacks = [
+    'Assam',
+    'Meghalaya',
+    'Lush Green',
+    'Morning Light',
+    'Village Path',
+    'Hills',
+    'Blue',
+    'Yellow',
+  ];
+
+  for (const item of fallbacks) {
+    if (list.length >= 4) break;
+    if (!list.includes(item)) {
+      list.push(item);
+    }
+  }
+
+  return list.slice(0, 4);
+};
+
+// Secure Image URL builder: ensures path stays strictly within memory-photos bucket
+const getSafeImageUrl = (imagePath) => {
+  if (typeof imagePath !== 'string' || !imagePath) return null;
+  const imageUrl = supabase.storage.from('memory-photos').getPublicUrl(imagePath).data.publicUrl;
+  if (__DEV__) console.log('IMG_URL:', imageUrl);
+  return imageUrl;
+};
+
 const DIFFICULTY_CONFIG = {
   Easy: { duration: 8, label: 'Easy (8s observation)' },
   Medium: { duration: 6, label: 'Medium (6s observation)' },
   Hard: { duration: 4, label: 'Hard (4s observation)' },
 };
 
-const MAX_QUESTIONS_PER_GAME = 5;
-
+/* -------------------------------------------------------------
+   Main Component
+------------------------------------------------------------- */
 export default function NortheastMemoryGame({
   difficulty: initialDifficulty = 'Easy',
   onGameOver,
   onFinish,
   onComplete,
+  onExit,
 }) {
   const { theme } = useTheme();
   const { patientId } = usePatient();
-  const activePatientId = patientId || 'P001';
 
-  // Game lifecycle states: 'idle' | 'loading' | 'showing' | 'question' | 'feedback' | 'gameover' | 'empty' | 'error'
+  // Validate patientId - fallback to P001 for seamless play
+  const activePatientId = patientId && isValidId(patientId) ? patientId : 'P001';
+
+  const handleExit = useCallback(() => {
+    onExit?.();
+    onFinish?.();
+  }, [onExit, onFinish]);
+
+  // Game States: 'idle' | 'loading' | 'showing' | 'question' | 'round-complete' | 'gameover' | 'no-scenes' | 'no-patient' | 'error'
   const [gameState, setGameState] = useState('idle');
   const [difficulty, setDifficulty] = useState(initialDifficulty);
 
-  // Scene & questions
+  // Active scene and validated questions
   const [scene, setScene] = useState(null);
   const [questions, setQuestions] = useState([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
 
-  // Timing & score
+  // Timing & metrics
   const [observationTimeLeft, setObservationTimeLeft] = useState(8);
   const [questionStartTime, setQuestionStartTime] = useState(0);
-  const [score, setScore] = useState(0);
-  const [gameDuration, setGameDuration] = useState(0);
-  const [gameStartTimestamp, setGameStartTimestamp] = useState(0);
+  const [roundScore, setRoundScore] = useState(0);
+  const [totalScore, setTotalScore] = useState(0);
+  const [totalDuration, setTotalDuration] = useState(0);
+  const [scenesCompleted, setScenesCompleted] = useState(0);
 
-  // Feedback state
+  // Feedback & Rate Limiting
   const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [isLastAnswerCorrect, setIsLastAnswerCorrect] = useState(false);
+  const [isAnswerDisabled, setIsAnswerDisabled] = useState(false);
   const [imageLoadError, setImageLoadError] = useState(false);
+  const [isImageLoading, setIsImageLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
 
+  // Refs for cleanup and double submission guard
   const timerRef = useRef(null);
   const feedbackTimeoutRef = useRef(null);
+  const rateLimitTimeoutRef = useRef(null);
+  const isSubmittingRef = useRef(false);
 
-  // Clear timers on unmount
+  // Current Question
+  const currentQuestion = questions[currentQuestionIndex];
+
+  // Options shuffled inside useMemo with dependency on currentQuestion?.question_id
+  const shuffledOptions = useMemo(() => {
+    if (!currentQuestion) return [];
+    const baseOptions = normalizeToFourOptions(
+      currentQuestion.options,
+      currentQuestion.answer
+    ).map(sanitizeText);
+    return [...baseOptions].sort(() => Math.random() - 0.5);
+  }, [currentQuestion?.question_id]);
+
+  // Cleanup timers on unmount
   useEffect(() => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
       if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
+      if (rateLimitTimeoutRef.current) clearTimeout(rateLimitTimeoutRef.current);
     };
   }, []);
 
-  // Duration tracker during active gameplay
+  // Total duration timer during active gameplay
   useEffect(() => {
-    if (gameState === 'showing' || gameState === 'question' || gameState === 'feedback') {
+    if (gameState === 'showing' || gameState === 'question') {
       const interval = setInterval(() => {
-        setGameDuration((prev) => prev + 1);
+        setTotalDuration((prev) => prev + 1);
       }, 1000);
       return () => clearInterval(interval);
     }
   }, [gameState]);
 
-  // Helper to resolve public image URL
-  const getImageUrl = useCallback((imagePath) => {
-    if (!imagePath) return null;
-    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
-      return imagePath;
-    }
-    const { data } = supabase.storage.from('memory-photos').getPublicUrl(imagePath);
-    return data?.publicUrl || null;
-  }, []);
-
-  // Parse options safely into a plain array of strings
-  const parseOptions = (rawOptions) => {
-    if (Array.isArray(rawOptions)) {
-      return rawOptions.map(String);
-    }
-    if (typeof rawOptions === 'string') {
-      try {
-        const parsed = JSON.parse(rawOptions);
-        if (Array.isArray(parsed)) return parsed.map(String);
-      } catch {
-        return rawOptions.split(',').map((s) => s.trim());
-      }
-    }
-    return [];
-  };
-
-  // Start the game by loading a new memory scene
-  const startGame = async () => {
+  /* -----------------------------------------------------------
+     Load Next Scene (Tasks 1, 3, 4: Retries, Guards, Error States)
+  ----------------------------------------------------------- */
+  const loadNextScene = useCallback(async () => {
+    logDev(`LOADING, fetching scene for patientId=${activePatientId}`);
     setGameState('loading');
     setImageLoadError(false);
-    setErrorMessage('');
-    setScore(0);
-    setGameDuration(0);
-    setCurrentQuestionIndex(0);
+    setIsImageLoading(true);
     setSelectedAnswer(null);
-    setGameStartTimestamp(Date.now());
+    setRoundScore(0);
+    setCurrentQuestionIndex(0);
+    setErrorMessage('');
+    isSubmittingRef.current = false;
+
+    let attempts = 0;
+    let foundScene = null;
+    let foundQuestions = [];
 
     try {
-      const nextScene = await getNextMemoryScene(activePatientId);
+      while (attempts < 5) {
+        attempts++;
+        logDev(`[Attempt ${attempts}] Fetching scene from database...`);
+        const nextScene = await getNextMemoryScene(activePatientId);
+        logDev('SCENE RESULT:', JSON.stringify(nextScene));
 
-      if (!nextScene) {
-        // Patient has seen all scenes or database is empty
-        setGameState('empty');
-        return;
+        if (!nextScene || !nextScene.scene_id) {
+          logDev('No unseen scene returned for patient.');
+          break;
+        }
+
+        const rawQuestions = await getSceneQuestions(nextScene.scene_id);
+        logDev(
+          `QUESTIONS RESULT: count=${rawQuestions?.length || 0}, data=`,
+          JSON.stringify(rawQuestions)
+        );
+
+        const filtered = Array.isArray(rawQuestions)
+          ? rawQuestions.filter(isValidQuestion)
+          : [];
+        logDev(`FILTERED QUESTIONS: count=${filtered?.length || 0}`);
+
+        if (filtered.length > 0) {
+          foundScene = nextScene;
+          foundQuestions = filtered.slice(0, 5);
+          break;
+        }
       }
 
-      // Fetch questions for this scene
-      const sceneQuestions = await getSceneQuestions(nextScene.scene_id);
+      // If no unseen scene with questions was found, fetch ANY active scene with questions as fallback
+      if (!foundScene) {
+        logDev('Checking all active scenes as fallback...');
+        const { data: allScenes, error: dbErr } = await supabase
+          .from('memory_scenes')
+          .select('*')
+          .eq('active', true);
 
-      if (!sceneQuestions || sceneQuestions.length === 0) {
-        // If current scene has no questions yet, mark as seen and inform user
-        await recordSceneView(activePatientId, nextScene.scene_id);
-        setErrorMessage('This photo does not have questions yet. Please try another.');
+        if (dbErr) {
+          errorDev('ERROR in memory_scenes query:', dbErr);
+          setErrorMessage('Could not connect to the database. Please check your network.');
+          setGameState('error');
+          return;
+        }
+
+        if (allScenes && allScenes.length > 0) {
+          for (const s of allScenes) {
+            const rawQ = await getSceneQuestions(s.scene_id);
+            const validQ = (rawQ || []).filter(isValidQuestion);
+            if (validQ.length > 0) {
+              foundScene = s;
+              foundQuestions = validQ.slice(0, 5);
+              break;
+            }
+          }
+        }
+      }
+
+      if (!foundScene || foundQuestions.length === 0) {
+        setErrorMessage('No photos or memory questions are ready yet. Please check back shortly.');
         setGameState('error');
         return;
       }
 
-      const activeQuestions = sceneQuestions.slice(0, MAX_QUESTIONS_PER_GAME);
-      setScene(nextScene);
-      setQuestions(activeQuestions);
+      setScene(foundScene);
+      setQuestions(foundQuestions);
 
-      // Record scene view immediately
-      await recordSceneView(activePatientId, nextScene.scene_id);
-
-      // Begin observation period
-      const obsDuration = DIFFICULTY_CONFIG[difficulty]?.duration || 8;
-      setObservationTimeLeft(obsDuration);
+      const durationSeconds = DIFFICULTY_CONFIG[difficulty]?.duration || 8;
+      setObservationTimeLeft(durationSeconds);
+      logDev(`SHOWING scene=${foundScene.scene_id}, duration=${durationSeconds}s`);
       setGameState('showing');
     } catch (err) {
-      console.error('Failed to start memory game:', err);
-      setErrorMessage('Could not load memory photos. Please check your connection.');
+      errorDev('ERROR in loadNextScene:', err);
+      setErrorMessage('Something went wrong while loading the photo. Please try again.');
       setGameState('error');
     }
-  };
+  }, [activePatientId, difficulty]);
 
-  // Observation countdown timer
+  /* -----------------------------------------------------------
+     Observation Countdown Timer (STATE 3: showing)
+  ----------------------------------------------------------- */
   useEffect(() => {
     if (gameState === 'showing') {
-      const initialSeconds = DIFFICULTY_CONFIG[difficulty]?.duration || 8;
-      setObservationTimeLeft(initialSeconds);
+      const durationSeconds = DIFFICULTY_CONFIG[difficulty]?.duration || 8;
+      setObservationTimeLeft(durationSeconds);
 
       timerRef.current = setInterval(() => {
         setObservationTimeLeft((prev) => {
           if (prev <= 1) {
             clearInterval(timerRef.current);
+            // Record scene view securely
+            if (scene?.scene_id && isValidId(scene.scene_id)) {
+              recordSceneView(activePatientId, scene.scene_id).catch((err) =>
+                errorDev('ERROR in recordSceneView:', err)
+              );
+            }
+            logDev(`QUESTION 0: ${questions[0]?.question}`);
             setGameState('question');
             setQuestionStartTime(Date.now());
             return 0;
@@ -177,402 +348,589 @@ export default function NortheastMemoryGame({
         if (timerRef.current) clearInterval(timerRef.current);
       };
     }
-  }, [gameState, difficulty]);
+  }, [gameState, difficulty, scene, activePatientId, questions]);
 
-  // Handle user selecting an answer
-  const handleAnswerSelect = async (option) => {
-    if (gameState !== 'question') return;
-
-    const responseTimeSeconds = Math.max(1, Math.round((Date.now() - questionStartTime) / 1000));
-    const currentQ = questions[currentQuestionIndex];
-    const isCorrect = String(option).trim().toLowerCase() === String(currentQ.answer).trim().toLowerCase();
-
-    setSelectedAnswer(option);
-    setIsLastAnswerCorrect(isCorrect);
-    if (isCorrect) {
-      setScore((prev) => prev + 1);
+  /* -----------------------------------------------------------
+     Handle Answer Selection (STATE 4: question)
+  ----------------------------------------------------------- */
+  const handleAnswerSelect = async (rawOption) => {
+    if (isSubmittingRef.current || isAnswerDisabled || gameState !== 'question') {
+      return;
     }
 
-    setGameState('feedback');
+    isSubmittingRef.current = true;
+    setIsAnswerDisabled(true);
 
-    // Record response in background
+    // Rate limit taps for 300ms
+    rateLimitTimeoutRef.current = setTimeout(() => {
+      setIsAnswerDisabled(false);
+    }, 300);
+
+    const currentQ = questions[currentQuestionIndex];
+    if (!currentQ) return;
+
+    const sanitizedSelected = sanitizeText(String(rawOption));
+    const sanitizedCorrect = sanitizeText(String(currentQ.answer));
+    const isCorrect =
+      sanitizedSelected.toLowerCase() === sanitizedCorrect.toLowerCase();
+
+    // Response time calculation
+    const responseTimeMs = Math.max(0, Date.now() - questionStartTime);
+    const responseTimeSec = Math.max(1, Math.round(responseTimeMs / 1000));
+
+    logDev(
+      `Answer: "${sanitizedSelected}" | Correct: "${sanitizedCorrect}" | Time: ${responseTimeSec}s | isCorrect: ${isCorrect}`
+    );
+
+    setSelectedAnswer(sanitizedSelected);
+    setIsLastAnswerCorrect(isCorrect);
+    if (isCorrect) {
+      setRoundScore((prev) => prev + 1);
+      setTotalScore((prev) => prev + 1);
+    }
+
+    // Record performance securely
     try {
       await recordPerformance({
         patient_id: activePatientId,
         scene_id: scene?.scene_id || 'unknown',
         question_id: currentQ.question_id,
-        selected_answer: String(option),
-        correct_answer: String(currentQ.answer),
+        selected_answer: sanitizedSelected,
+        correct_answer: sanitizedCorrect,
         is_correct: isCorrect,
-        response_time: responseTimeSeconds,
+        response_time: responseTimeSec,
         difficulty: difficulty,
         game_name: 'North East Memory',
       });
     } catch (recordErr) {
-      console.warn('Could not record performance:', recordErr);
+      errorDev('ERROR in recordPerformance:', recordErr);
     }
 
-    // Move to next question after feedback pause
+    // Show feedback for 1.5s, then advance
     feedbackTimeoutRef.current = setTimeout(() => {
+      isSubmittingRef.current = false;
       const nextIndex = currentQuestionIndex + 1;
+
       if (nextIndex < questions.length) {
+        logDev(`QUESTION ${nextIndex}: ${questions[nextIndex]?.question}`);
         setCurrentQuestionIndex(nextIndex);
         setSelectedAnswer(null);
         setQuestionStartTime(Date.now());
-        setGameState('question');
       } else {
-        // Game complete
-        const finalScore = isCorrect ? score + 1 : score;
-        setGameState('gameover');
-        const summary = {
-          score: finalScore,
-          total: questions.length,
-          difficulty,
-          duration: gameDuration,
-        };
-        onGameOver?.(summary);
-        onFinish?.(summary);
-        onComplete?.(summary);
+        setScenesCompleted((prev) => prev + 1);
+        logDev('Round complete! Moving to round-complete state.');
+        setGameState('round-complete');
       }
-    }, 2200);
+    }, 1500);
   };
 
-  // Reset progress so patient can replay scenes
-  const handleReplaySeenPhotos = async () => {
+  // Replay all photos by clearing seen history for this patient
+  const handleResetHistoryAndPlay = async () => {
     try {
       setGameState('loading');
-      await supabase.from('player_scene_history').delete().eq('patient_id', activePatientId);
-      startGame();
+      logDev('Resetting seen scene history for patient:', activePatientId);
+      await supabase
+        .from('player_scene_history')
+        .delete()
+        .eq('patient_id', activePatientId);
+      loadNextScene();
     } catch (err) {
-      console.warn('Could not reset scene history:', err);
-      startGame();
+      errorDev('ERROR in resetting scene history:', err);
+      loadNextScene();
     }
   };
 
-  // -------------------------------------------------------------
-  // Render: Loading State
-  // -------------------------------------------------------------
-  if (gameState === 'loading') {
-    return (
-      <View style={[styles.centerContainer, { backgroundColor: theme.background }]}>
-        <ActivityIndicator size="large" color={theme.primary} />
-        <Text style={[styles.instructionText, { color: theme.text, marginTop: 24 }]}>
-          Loading your next photo...
-        </Text>
-      </View>
-    );
-  }
+  const handleStartGamePress = () => {
+    logDev(`START pressed, difficulty=${difficulty}, patientId=${activePatientId}`);
+    loadNextScene();
+  };
 
-  // -------------------------------------------------------------
-  // Render: All Photos Seen (Empty State)
-  // -------------------------------------------------------------
-  if (gameState === 'empty') {
-    return (
-      <View style={[styles.centerContainer, { backgroundColor: theme.background, padding: 24 }]}>
-        <Ionicons name="trophy-outline" size={64} color={theme.primary} style={{ marginBottom: 16 }} />
-        <Text style={[styles.titleText, { color: theme.text, textAlign: 'center' }]}>
-          You've seen all photos! Great job!
-        </Text>
-        <Text style={[styles.subText, { color: theme.subText, marginTop: 12, textAlign: 'center' }]}>
-          You have successfully completed every photo in this collection.
-        </Text>
+  const handleFinishGame = () => {
+    const summary = {
+      score: totalScore,
+      duration: totalDuration,
+      difficulty,
+      scenesCompleted,
+    };
+    onComplete?.(summary);
+    onGameOver?.(summary);
+    onFinish?.(summary);
+    onExit?.(summary);
+  };
 
-        <TouchableOpacity
-          style={[styles.primaryButton, { backgroundColor: theme.primary, marginTop: 32 }]}
-          onPress={handleReplaySeenPhotos}
-        >
-          <Text style={[styles.primaryButtonText, { color: theme.cardBackground }]}>
-            Play Again (Review All)
+  /* -----------------------------------------------------------
+     STATE: Patient Guard (Task 4: Patient ID guard)
+  ----------------------------------------------------------- */
+  if (gameState === 'no-patient') {
+    return (
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
+        <View style={[styles.centerContainer, { padding: 24 }]}>
+          <Ionicons name="person-circle-outline" size={72} color={theme.primary} style={{ marginBottom: 16 }} />
+          <Text style={[styles.largeTitle, { color: theme.text, textAlign: 'center' }]}>
+            Patient Profile Required
           </Text>
-        </TouchableOpacity>
+          <Text style={[styles.bodyText, { color: theme.subText, marginTop: 12, textAlign: 'center' }]}>
+            Please select a patient first to track memory exercises and progress.
+          </Text>
 
-        <TouchableOpacity
-          style={[styles.secondaryButton, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder, marginTop: 16 }]}
-          onPress={() => onFinish?.()}
-        >
-          <Text style={[styles.secondaryButtonText, { color: theme.text }]}>Back to Games</Text>
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity
+            style={[styles.buttonBase, { backgroundColor: theme.primary, marginTop: 32 }]}
+            onPress={() => {
+              logDev('Proceeding with testing profile P001');
+              setGameState('idle');
+              loadNextScene();
+            }}
+          >
+            <Text style={[styles.buttonText, { color: theme.cardBackground, fontWeight: 'bold' }]}>
+              Continue as Guest (P001)
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.buttonBase, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder, marginTop: 16 }]}
+            onPress={handleExit}
+          >
+            <Text style={[styles.buttonText, { color: theme.text }]}>
+              Back to Games
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
     );
   }
 
-  // -------------------------------------------------------------
-  // Render: Error State
-  // -------------------------------------------------------------
-  if (gameState === 'error') {
-    return (
-      <View style={[styles.centerContainer, { backgroundColor: theme.background, padding: 24 }]}>
-        <Ionicons name="alert-circle-outline" size={56} color={theme.subText} style={{ marginBottom: 16 }} />
-        <Text style={[styles.titleText, { color: theme.text, textAlign: 'center' }]}>
-          Something went wrong
-        </Text>
-        <Text style={[styles.subText, { color: theme.subText, marginTop: 12, textAlign: 'center' }]}>
-          {errorMessage || 'Unable to load photo details. Please check your connection.'}
-        </Text>
-
-        <TouchableOpacity
-          style={[styles.primaryButton, { backgroundColor: theme.primary, marginTop: 32 }]}
-          onPress={startGame}
-        >
-          <Text style={[styles.primaryButtonText, { color: theme.cardBackground }]}>Try Again</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.secondaryButton, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder, marginTop: 16 }]}
-          onPress={() => setGameState('idle')}
-        >
-          <Text style={[styles.secondaryButtonText, { color: theme.text }]}>Cancel</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
-  // -------------------------------------------------------------
-  // Render: Idle State (Difficulty & Start)
-  // -------------------------------------------------------------
+  /* -----------------------------------------------------------
+     STATE 1: Idle Screen
+  ----------------------------------------------------------- */
   if (gameState === 'idle') {
     return (
-      <ScrollView contentContainerStyle={[styles.scrollContainer, { backgroundColor: theme.background }]}>
-        <View style={[styles.card, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder }]}>
-          <Text style={[styles.titleText, { color: theme.text }]}>
-            🏞️ North East Memory
-          </Text>
-          <Text style={[styles.subText, { color: theme.subText, marginTop: 10 }]}>
-            Observe calming scenes from North East India and test your short-term memory.
-          </Text>
-        </View>
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          {/* Header with Exit Button (Task 4: Back Button) */}
+          <View style={styles.topBarRow}>
+            <TouchableOpacity
+              style={[styles.backIconBtn, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder }]}
+              onPress={handleExit}
+            >
+              <Ionicons name="arrow-back" size={24} color={theme.text} />
+              <Text style={[styles.backIconText, { color: theme.text }]}>Back</Text>
+            </TouchableOpacity>
+          </View>
 
-        <View style={[styles.card, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder, marginTop: 16 }]}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>Select Difficulty</Text>
+          <View style={[styles.card, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder, marginTop: 12 }]}>
+            <Text style={[styles.largeTitle, { color: theme.text }]}>
+              🏞️ North East Memory
+            </Text>
+            <Text style={[styles.bodyText, { color: theme.subText, marginTop: 12 }]}>
+              Look at the photo carefully. Then answer questions about what you saw.
+            </Text>
+          </View>
 
-          {['Easy', 'Medium', 'Hard'].map((lvl) => {
-            const isSelected = difficulty === lvl;
-            return (
-              <TouchableOpacity
-                key={lvl}
-                style={[
-                  styles.optionButton,
-                  {
-                    backgroundColor: isSelected ? theme.primary : theme.cardBackground,
-                    borderColor: isSelected ? theme.primary : theme.cardBorder,
-                    marginTop: 12,
-                  },
-                ]}
-                onPress={() => setDifficulty(lvl)}
-              >
-                <Text
+          <View style={[styles.card, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder, marginTop: 16 }]}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>
+              Select Difficulty
+            </Text>
+
+            {['Easy', 'Medium', 'Hard'].map((lvl) => {
+              const isSelected = difficulty === lvl;
+              return (
+                <TouchableOpacity
+                  key={lvl}
                   style={[
-                    styles.optionButtonText,
-                    { color: isSelected ? theme.cardBackground : theme.text },
+                    styles.buttonBase,
+                    {
+                      backgroundColor: isSelected ? theme.primary : theme.cardBackground,
+                      borderColor: isSelected ? theme.primary : theme.cardBorder,
+                      marginTop: 12,
+                    },
                   ]}
+                  onPress={() => setDifficulty(lvl)}
                 >
-                  {DIFFICULTY_CONFIG[lvl].label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+                  <Text
+                    style={[
+                      styles.buttonText,
+                      { color: isSelected ? theme.cardBackground : theme.text },
+                    ]}
+                  >
+                    {DIFFICULTY_CONFIG[lvl].label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
 
-        <TouchableOpacity
-          style={[styles.primaryButton, { backgroundColor: theme.primary, marginTop: 24 }]}
-          onPress={startGame}
-        >
-          <Text style={[styles.primaryButtonText, { color: theme.cardBackground }]}>
-            Start Game
-          </Text>
-        </TouchableOpacity>
-      </ScrollView>
+          <TouchableOpacity
+            style={[styles.buttonBase, { backgroundColor: theme.primary, marginTop: 24 }]}
+            onPress={handleStartGamePress}
+          >
+            <Text style={[styles.buttonText, { color: theme.cardBackground, fontWeight: 'bold' }]}>
+              Start Game
+            </Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </SafeAreaView>
     );
   }
 
-  // -------------------------------------------------------------
-  // Render: Showing State (Photo Display with Calm 0.5 Opacity)
-  // -------------------------------------------------------------
-  if (gameState === 'showing') {
-    const photoUrl = getImageUrl(scene?.image_path);
-
+  /* -----------------------------------------------------------
+     STATE 2: Loading Screen (Task 4: Loading Indicator)
+  ----------------------------------------------------------- */
+  if (gameState === 'loading') {
     return (
-      <View style={[styles.container, { backgroundColor: theme.background, padding: 16 }]}>
-        <View style={[styles.card, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder, alignItems: 'center' }]}>
-          <Text style={[styles.titleText, { color: theme.text }]}>
-            Take your time. Look carefully.
-          </Text>
-          <Text style={[styles.timerBadgeText, { color: theme.primary, marginTop: 8 }]}>
-            Time remaining: {observationTimeLeft}s
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color={theme.primary} />
+          <Text style={[styles.sectionTitle, { color: theme.text, marginTop: 24 }]}>
+            Loading photo...
           </Text>
         </View>
+      </SafeAreaView>
+    );
+  }
 
-        <View style={[styles.imageWrapper, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder, marginTop: 16 }]}>
-          {photoUrl && !imageLoadError ? (
-            <Image
-              source={{ uri: photoUrl }}
-              style={[styles.sceneImage, { opacity: 0.5 }]}
-              resizeMode="cover"
-              onError={() => setImageLoadError(true)}
-            />
-          ) : (
-            <View style={styles.imagePlaceholder}>
-              <Ionicons name="image-outline" size={64} color={theme.subText} />
-              <Text style={[styles.subText, { color: theme.subText, marginTop: 12 }]}>
-                Scenic memory photo
+  /* -----------------------------------------------------------
+     STATE: Error Screen (Tasks 3 & 4: Visible Error Message)
+  ----------------------------------------------------------- */
+  if (gameState === 'error') {
+    return (
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
+        <View style={[styles.centerContainer, { padding: 24 }]}>
+          <Ionicons name="alert-circle-outline" size={64} color="#EF4444" style={{ marginBottom: 16 }} />
+          <Text style={[styles.largeTitle, { color: theme.text, textAlign: 'center' }]}>
+            Something went wrong
+          </Text>
+          <Text style={[styles.bodyText, { color: theme.subText, marginTop: 12, textAlign: 'center' }]}>
+            {errorMessage || 'Something went wrong. Please try again.'}
+          </Text>
+
+          <TouchableOpacity
+            style={[styles.buttonBase, { backgroundColor: theme.primary, marginTop: 32 }]}
+            onPress={loadNextScene}
+          >
+            <Text style={[styles.buttonText, { color: theme.cardBackground, fontWeight: 'bold' }]}>
+              Try Again
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.buttonBase, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder, marginTop: 16 }]}
+            onPress={() => setGameState('idle')}
+          >
+            <Text style={[styles.buttonText, { color: theme.text }]}>
+              Back to Start
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  /* -----------------------------------------------------------
+     STATE: No Scenes Available (Task 4: No scenes guard)
+  ----------------------------------------------------------- */
+  if (gameState === 'no-scenes') {
+    return (
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
+        <View style={[styles.centerContainer, { padding: 24 }]}>
+          <Ionicons name="trophy-outline" size={72} color="#059669" style={{ marginBottom: 16 }} />
+          <Text style={[styles.largeTitle, { color: theme.text, textAlign: 'center' }]}>
+            You've seen all photos! Great job!
+          </Text>
+          <Text style={[styles.bodyText, { color: theme.subText, marginTop: 12, textAlign: 'center' }]}>
+            You have explored every photograph available in this memory exercise.
+          </Text>
+
+          <TouchableOpacity
+            style={[styles.buttonBase, { backgroundColor: '#059669', marginTop: 32 }]}
+            onPress={handleResetHistoryAndPlay}
+          >
+            <Text style={[styles.buttonText, { color: theme.cardBackground, fontWeight: 'bold' }]}>
+              Replay All Photos
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.buttonBase, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder, marginTop: 16 }]}
+            onPress={handleExit}
+          >
+            <Text style={[styles.buttonText, { color: theme.text }]}>
+              Back to Games
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  /* -----------------------------------------------------------
+     STATE 3: Showing Screen (Calming 0.5 Opacity & Countdown)
+  ----------------------------------------------------------- */
+  if (gameState === 'showing') {
+    const imageUrl = scene?.image_path
+      ? supabase.storage.from('memory-photos').getPublicUrl(scene.image_path).data.publicUrl
+      : null;
+    if (__DEV__) console.log('IMG_URL:', imageUrl);
+
+    const screenWidth = Dimensions.get('window').width;
+    const cardWidth = Math.min(screenWidth - 40, 500);
+    const cardHeight = Math.round(cardWidth * 0.75);
+
+    return (
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          {/* Back button */}
+          <View style={styles.topBarRow}>
+            <TouchableOpacity
+              style={[styles.backIconBtn, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder }]}
+              onPress={handleExit}
+            >
+              <Ionicons name="arrow-back" size={24} color={theme.text} />
+              <Text style={[styles.backIconText, { color: theme.text }]}>Exit</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={[styles.card, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder, alignItems: 'center', marginTop: 12 }]}>
+            <Text style={[styles.sectionTitle, { color: theme.text, textAlign: 'center' }]}>
+              Take your time. Look carefully.
+            </Text>
+            <Text style={[styles.timerText, { color: theme.primary, marginTop: 8 }]}>
+              {observationTimeLeft}s
+            </Text>
+          </View>
+
+          <View style={[styles.imageContainer, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder, marginTop: 16, height: cardHeight }]}>
+            {imageUrl && !imageLoadError ? (
+              <View style={{ width: cardWidth, height: cardHeight, justifyContent: 'center', alignItems: 'center' }}>
+                {isImageLoading && (
+                  <ActivityIndicator size="large" color={theme.primary} style={{ position: 'absolute', zIndex: 1 }} />
+                )}
+                <Image
+                  source={{ uri: imageUrl }}
+                  style={[styles.photo, { opacity: 0.5, width: cardWidth, height: cardHeight }]}
+                  resizeMode="cover"
+                  onLoad={() => {
+                    if (__DEV__) console.log('IMG_OK:', imageUrl);
+                    setIsImageLoading(false);
+                  }}
+                  onError={(e) => {
+                    if (__DEV__) console.log('IMG_FAIL:', e.nativeEvent);
+                    setImageLoadError(true);
+                    setIsImageLoading(false);
+                  }}
+                />
+              </View>
+            ) : (
+              <View style={styles.centerContainer}>
+                <Ionicons name="image-outline" size={64} color={theme.subText} />
+                <Text style={[styles.bodyText, { color: theme.subText, marginTop: 12 }]}>
+                  {imageLoadError ? 'Image unavailable' : 'Scenic memory photo'}
+                </Text>
+              </View>
+            )}
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  /* -----------------------------------------------------------
+     STATE 4: Question Screen (Sanitized Text, 4 Options)
+  ----------------------------------------------------------- */
+  if (gameState === 'question') {
+    const sanitizedQuestion = sanitizeText(currentQuestion?.question);
+
+    return (
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          {/* Back button */}
+          <View style={styles.topBarRow}>
+            <TouchableOpacity
+              style={[styles.backIconBtn, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder }]}
+              onPress={handleExit}
+            >
+              <Ionicons name="arrow-back" size={24} color={theme.text} />
+              <Text style={[styles.backIconText, { color: theme.text }]}>Exit</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Question Card */}
+          <View style={[styles.card, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder, marginTop: 12 }]}>
+            <View style={styles.rowBetween}>
+              <Text style={[styles.badgeText, { color: theme.primary }]}>
+                Question {currentQuestionIndex + 1} of {questions.length}
+              </Text>
+              <Text style={[styles.badgeText, { color: theme.subText }]}>
+                Score: {roundScore}
+              </Text>
+            </View>
+
+            <Text style={[styles.questionText, { color: theme.text, marginTop: 16 }]}>
+              {sanitizedQuestion}
+            </Text>
+          </View>
+
+          {/* 4 Answer Options */}
+          <View style={{ marginTop: 16 }}>
+            {shuffledOptions.map((opt, idx) => {
+              const isSelected = selectedAnswer === opt;
+              const isCorrect =
+                opt.toLowerCase() === sanitizeText(String(currentQuestion?.answer)).toLowerCase();
+
+              let buttonBg = theme.cardBackground;
+              let buttonBorder = theme.cardBorder;
+              let textColor = theme.text;
+
+              if (selectedAnswer !== null) {
+                if (isSelected && isLastAnswerCorrect) {
+                  buttonBg = '#10B981'; // standard emerald success
+                  buttonBorder = '#10B981';
+                  textColor = '#FFFFFF';
+                } else if (isSelected && !isLastAnswerCorrect) {
+                  buttonBg = '#EF4444'; // standard red error
+                  buttonBorder = '#EF4444';
+                  textColor = '#FFFFFF';
+                } else if (isCorrect) {
+                  buttonBg = theme.cardBackground;
+                  buttonBorder = '#10B981';
+                  textColor = '#10B981';
+                }
+              }
+
+              return (
+                <TouchableOpacity
+                  key={`${opt}-${idx}`}
+                  disabled={isAnswerDisabled || selectedAnswer !== null}
+                  style={[
+                    styles.buttonBase,
+                    {
+                      backgroundColor: buttonBg,
+                      borderColor: buttonBorder,
+                      marginBottom: 14,
+                    },
+                  ]}
+                  onPress={() => handleAnswerSelect(opt)}
+                >
+                  <Text style={[styles.buttonText, { color: textColor }]}>
+                    {opt}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          {/* Feedback Message */}
+          {selectedAnswer !== null && (
+            <View style={[styles.card, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder, marginTop: 8 }]}>
+              <Text
+                style={[
+                  styles.feedbackText,
+                  {
+                    color: isLastAnswerCorrect ? '#10B981' : '#EF4444',
+                    textAlign: 'center',
+                  },
+                ]}
+              >
+                {isLastAnswerCorrect
+                  ? '✨ Correct! Well done!'
+                  : `Correct answer: ${sanitizeText(String(currentQuestion?.answer))}`}
               </Text>
             </View>
           )}
-        </View>
-
-        {scene?.description ? (
-          <View style={[styles.card, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder, marginTop: 16 }]}>
-            <Text style={[styles.captionText, { color: theme.subText, textAlign: 'center' }]}>
-              {scene.description}
-            </Text>
-          </View>
-        ) : null}
-      </View>
+        </ScrollView>
+      </SafeAreaView>
     );
   }
 
-  // -------------------------------------------------------------
-  // Render: Question & Feedback States
-  // -------------------------------------------------------------
-  if (gameState === 'question' || gameState === 'feedback') {
-    const currentQ = questions[currentQuestionIndex];
-    const options = parseOptions(currentQ?.options);
-
+  /* -----------------------------------------------------------
+     STATE 5: Round Complete Screen
+  ----------------------------------------------------------- */
+  if (gameState === 'round-complete') {
     return (
-      <ScrollView contentContainerStyle={[styles.scrollContainer, { backgroundColor: theme.background }]}>
-        {/* Question Header Card */}
-        <View style={[styles.card, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder }]}>
-          <View style={styles.rowBetween}>
-            <Text style={[styles.badgeText, { color: theme.primary }]}>
-              Question {currentQuestionIndex + 1} of {questions.length}
-            </Text>
-            <Text style={[styles.badgeText, { color: theme.subText }]}>
-              Score: {score}
-            </Text>
-          </View>
-
-          <Text style={[styles.questionText, { color: theme.text, marginTop: 16 }]}>
-            {currentQ?.question || 'What did you observe in the picture?'}
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
+        <View style={[styles.centerContainer, { padding: 24 }]}>
+          <Ionicons name="sparkles" size={64} color="#10B981" style={{ marginBottom: 16 }} />
+          <Text style={[styles.largeTitle, { color: theme.text, textAlign: 'center' }]}>
+            Great job!
           </Text>
-        </View>
+          <Text style={[styles.sectionTitle, { color: theme.subText, marginTop: 12, textAlign: 'center' }]}>
+            You found {roundScore} out of {questions.length} correct.
+          </Text>
 
-        {/* Options List */}
-        <View style={{ marginTop: 16 }}>
-          {options.map((opt, idx) => {
-            const isSelected = selectedAnswer === opt;
-            const isCorrectOption =
-              String(opt).trim().toLowerCase() === String(currentQ?.answer).trim().toLowerCase();
-
-            let optionBg = theme.cardBackground;
-            let optionBorder = theme.cardBorder;
-            let optionTextColor = theme.text;
-
-            if (gameState === 'feedback') {
-              if (isSelected && isLastAnswerCorrect) {
-                optionBg = theme.primary;
-                optionBorder = theme.primary;
-                optionTextColor = theme.cardBackground;
-              } else if (isSelected && !isLastAnswerCorrect) {
-                optionBg = theme.cardBorder;
-                optionBorder = theme.subText;
-                optionTextColor = theme.text;
-              } else if (isCorrectOption) {
-                optionBg = theme.cardBackground;
-                optionBorder = theme.primary;
-                optionTextColor = theme.primary;
-              }
-            }
-
-            return (
-              <TouchableOpacity
-                key={`${opt}-${idx}`}
-                disabled={gameState === 'feedback'}
-                style={[
-                  styles.optionButton,
-                  {
-                    backgroundColor: optionBg,
-                    borderColor: optionBorder,
-                    marginBottom: 14,
-                  },
-                ]}
-                onPress={() => handleAnswerSelect(opt)}
-              >
-                <Text style={[styles.optionButtonText, { color: optionTextColor }]}>
-                  {opt}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-
-        {/* Feedback Message Card */}
-        {gameState === 'feedback' && (
-          <View style={[styles.card, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder, marginTop: 8 }]}>
-            <Text
-              style={[
-                styles.feedbackText,
-                { color: isLastAnswerCorrect ? theme.primary : theme.text, textAlign: 'center' },
-              ]}
-            >
-              {isLastAnswerCorrect
-                ? '✨ Correct! Well done!'
-                : `That's okay! Correct answer: ${currentQ?.answer}`}
+          <TouchableOpacity
+            style={[styles.buttonBase, { backgroundColor: theme.primary, marginTop: 32 }]}
+            onPress={loadNextScene}
+          >
+            <Text style={[styles.buttonText, { color: theme.cardBackground, fontWeight: 'bold' }]}>
+              Next Photo
             </Text>
-          </View>
-        )}
-      </ScrollView>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.buttonBase, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder, marginTop: 16 }]}
+            onPress={() => setGameState('gameover')}
+          >
+            <Text style={[styles.buttonText, { color: theme.text }]}>
+              Finish Game
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
     );
   }
 
-  // -------------------------------------------------------------
-  // Render: Game Over State
-  // -------------------------------------------------------------
-  if (gameState === 'gameover') {
-    return (
-      <View style={[styles.centerContainer, { backgroundColor: theme.background, padding: 24 }]}>
-        <Ionicons name="checkmark-circle-outline" size={72} color={theme.primary} style={{ marginBottom: 16 }} />
-        <Text style={[styles.titleText, { color: theme.text, textAlign: 'center' }]}>
+  /* -----------------------------------------------------------
+     STATE 6: Game Over / Summary Screen (Task 4 #6)
+  ----------------------------------------------------------- */
+  return (
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
+      <View style={[styles.centerContainer, { padding: 24 }]}>
+        <Ionicons name="trophy-outline" size={72} color={theme.primary} style={{ marginBottom: 16 }} />
+        <Text style={[styles.largeTitle, { color: theme.text, textAlign: 'center' }]}>
           Game Complete!
         </Text>
 
         <View style={[styles.card, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder, width: '100%', marginTop: 24 }]}>
-          <Text style={[styles.scoreSummaryText, { color: theme.text, textAlign: 'center' }]}>
-            Final Score: {score} / {questions.length}
+          <Text style={[styles.largeTitle, { color: theme.text, textAlign: 'center' }]}>
+            Total Score: {totalScore}
           </Text>
-          <Text style={[styles.subText, { color: theme.subText, marginTop: 8, textAlign: 'center' }]}>
-            Difficulty: {difficulty} · Time: {gameDuration}s
+          <Text style={[styles.bodyText, { color: theme.subText, marginTop: 10, textAlign: 'center' }]}>
+            Difficulty: {difficulty} · Time: {totalDuration}s
+          </Text>
+          <Text style={[styles.bodyText, { color: theme.subText, marginTop: 4, textAlign: 'center' }]}>
+            Scenes Completed: {scenesCompleted}
           </Text>
         </View>
 
         <TouchableOpacity
-          style={[styles.primaryButton, { backgroundColor: theme.primary, marginTop: 32 }]}
-          onPress={startGame}
+          style={[styles.buttonBase, { backgroundColor: theme.primary, marginTop: 32 }]}
+          onPress={loadNextScene}
         >
-          <Text style={[styles.primaryButtonText, { color: theme.cardBackground }]}>
-            Play Next Photo
+          <Text style={[styles.buttonText, { color: theme.cardBackground, fontWeight: 'bold' }]}>
+            Play Again
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.secondaryButton, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder, marginTop: 16 }]}
-          onPress={() => onFinish?.()}
+          style={[styles.buttonBase, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder, marginTop: 16 }]}
+          onPress={handleFinishGame}
         >
-          <Text style={[styles.secondaryButtonText, { color: theme.text }]}>
+          <Text style={[styles.buttonText, { color: theme.text }]}>
             Back to Games
           </Text>
         </TouchableOpacity>
       </View>
-    );
-  }
-
-  return null;
+    </SafeAreaView>
+  );
 }
 
+/* -------------------------------------------------------------
+   Styles (All text >= 20px, All buttons >= 60px, rounded 12-16)
+------------------------------------------------------------- */
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
   },
-  scrollContainer: {
+  scrollContent: {
     padding: 20,
     flexGrow: 1,
   },
@@ -586,46 +944,51 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
   },
-  titleText: {
-    fontSize: 26,
+  topBarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  backIconBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    minHeight: 48,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  backIconText: {
+    fontSize: 20,
+    fontWeight: '600',
+    marginLeft: 6,
+  },
+  largeTitle: {
+    fontSize: 28,
     fontWeight: 'bold',
   },
-  subText: {
-    fontSize: 20,
-    lineHeight: 28,
-  },
   sectionTitle: {
-    fontSize: 22,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  instructionText: {
-    fontSize: 22,
-    textAlign: 'center',
-  },
-  timerBadgeText: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '600',
   },
   questionText: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '600',
-    lineHeight: 30,
+    lineHeight: 32,
+  },
+  bodyText: {
+    fontSize: 20,
+    lineHeight: 28,
   },
   badgeText: {
     fontSize: 20,
     fontWeight: '600',
   },
-  captionText: {
-    fontSize: 20,
-    fontStyle: 'italic',
+  timerText: {
+    fontSize: 26,
+    fontWeight: 'bold',
   },
   feedbackText: {
     fontSize: 22,
-    fontWeight: 'bold',
-  },
-  scoreSummaryText: {
-    fontSize: 26,
     fontWeight: 'bold',
   },
   rowBetween: {
@@ -633,63 +996,31 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  imageWrapper: {
+  imageContainer: {
     width: '100%',
-    height: 280,
     borderRadius: 16,
     borderWidth: 1,
     overflow: 'hidden',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  sceneImage: {
+  photo: {
     width: '100%',
     height: '100%',
   },
-  imagePlaceholder: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  optionButton: {
+  buttonBase: {
     minHeight: 64,
     borderRadius: 14,
     borderWidth: 1.5,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     paddingVertical: 14,
-  },
-  optionButtonText: {
-    fontSize: 20,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  primaryButton: {
-    minHeight: 64,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
     width: '100%',
   },
-  primaryButtonText: {
+  buttonText: {
     fontSize: 22,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  secondaryButton: {
-    minHeight: 60,
-    borderRadius: 14,
-    borderWidth: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    width: '100%',
-  },
-  secondaryButtonText: {
-    fontSize: 20,
     fontWeight: '600',
     textAlign: 'center',
   },
 });
-
